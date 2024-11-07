@@ -2,6 +2,7 @@ import os
 import time
 from bs4 import BeautifulSoup
 import re
+import pandas as pd
 import requests, json
 import weaviate
 import weaviate.classes as wvc
@@ -102,6 +103,14 @@ print(data)
 #         time.sleep(2)  # Sleep for 2 seconds between each page request
 
 #     return all_data
+
+# # Scrape data from page 1 to 2
+# data = scrape_multiple_pages(1, 2)
+# politifact_data = pd.DataFrame(data)
+# test_link = politifact_data['Link to Full Article'].iloc[0]
+
+# test_response = requests.get(test_link)
+# soup = BeautifulSoup(test_response.text, 'html.parser')
 
 # Add dataset to "Question" collection
 questions = client.collections.get("Question")
