@@ -116,7 +116,7 @@ print(data)
 questions = client.collections.get("Question")
 with questions.batch.dynamic() as batch:
     for d in data:
-        batch.add_object({
+        batch.add_object(properties={
             "answer": d["Answer"],
             "question": d["Question"],
             "category": d["Category"],
