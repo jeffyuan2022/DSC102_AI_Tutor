@@ -24,7 +24,7 @@ To initialize the MentorAI application, follow these steps:
 
 ---
 
-## Future Development Plans
+## TODOs
 
 ### 1. **Enhancing UI Design**
 The next phase focuses on improving the app's user interface to make it visually appealing and user-friendly:
