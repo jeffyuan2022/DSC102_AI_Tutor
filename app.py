@@ -40,7 +40,7 @@ def generate_pseudocode_outline(code):
     )
     return completion.choices[0].message.content
 
-st.title("MentorAI")
+st.title("MentorAI 🤖")
 
 if 'active_feature' not in st.session_state:
     st.session_state.active_feature = None
