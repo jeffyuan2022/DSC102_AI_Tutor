@@ -50,13 +50,13 @@ col1, col2, col3 = st.columns(3)
 
 # Place buttons in separate columns to arrange them horizontally
 with col1:
-    if st.button("Error-Specific Guidance and Hints"):
+    if st.button("🛠️Error-Specific Guidance and Hints"):
         st.session_state.active_feature = 'error_guidance'
 with col2:
-    if st.button("Pesudo Answer Generation Ground"):
+    if st.button("📘Pesudo Answer Generation Ground"):
         st.session_state.active_feature = 'Pesudo Answer Generation'
 with col3:
-    if st.button("Concept Links and Related Resources"):
+    if st.button("🔗Concept Links and Related Resources"):
         st.session_state.active_feature = 'concept_links'
 
 # Define behavior based on the button clicked
