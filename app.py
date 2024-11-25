@@ -40,13 +40,22 @@ def generate_pseudocode_outline(code):
     )
     return completion.choices[0].message.content
 
+def error_tracking(code):
+    completion = openai.chat.completions.create(
+        model = "gpt-4o",
+        messages=[
+            {"role": "user", "content": f"Here is the student's code: {code}, would you please attribute the code to one of the following category:[Algorithm, Data Structure, String Manipulation, Array and Matrix operation, Mathematical and Logical, Recursion and Backtracking, Searching and Sorting, Dynamic Programming, System Design, Object-Oriented Programming, Database and SQL, Real-World Simulation, Problem-Solving with APIs, Optimization] and output your answer in this format: [[your_answer]]? You MUST output one category in the list"}
+        ]
+    )
+    return completion.choices[0].message.content
+
 st.title("MentorAI 🤖")
 
 if 'active_feature' not in st.session_state:
     st.session_state.active_feature = None
 
 # Create three columns for the buttons
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 # Place buttons in separate columns to arrange them horizontally
 with col1:
@@ -58,7 +67,10 @@ with col2:
 with col3:
     if st.button("🔗Concept Links and Related Resources"):
         st.session_state.active_feature = 'concept_links'
-
+with col4:  # Add this under the existing buttons
+    if st.button("📊Error Tracking"):
+        st.session_state.active_feature = 'error_tracking'
+error_description = ""
 # Define behavior based on the button clicked
 if st.session_state.active_feature == 'error_guidance':
     # Display content for Error-Specific Guidance and Hints
@@ -71,9 +83,21 @@ if st.session_state.active_feature == 'error_guidance':
     code_input = st.text_area("Paste your code snippet here:", height=200)
 
     if st.button("Analyze Code"):
-        st.write("Analyzing your code... (hint generation would be here)")
-        hint = get_error_specific_hint(code_input)
-        st.write("Hint: " + hint)
+        if code_input.strip():
+            with st.spinner("Analyzing your code..."):
+                try:
+                    hint = get_error_specific_hint(code_input)
+                    error_description = error_tracking(code_input)
+                    # Track the error
+                    if 'tracked_errors' not in st.session_state:
+                        st.session_state.tracked_errors = []
+                    st.session_state.tracked_errors.append(error_description)
+                    st.write("Hint: " + hint)
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
+        else:
+            st.error("Please paste a valid code snippet.")
+
 
 elif st.session_state.active_feature == 'Pesudo Answer Generation':
     # Display content for Pattern Detection for Repeated Mistakes
@@ -101,48 +125,30 @@ elif st.session_state.active_feature == 'concept_links':
         related_concept = get_related_concepts(code_input)
         st.write("Related Concepts: " + related_concept)
 
+elif st.session_state.active_feature == 'error_tracking':
+    st.subheader("📊 Error Tracking")
+    st.write("""
+    This feature tracks all errors detected during the Error-Specific Guidance sessions.
+    Students can review their mistakes to identify patterns and focus on areas for improvement.
+    """)
+
+    # Display tracked errors
+    if 'tracked_errors' in st.session_state and st.session_state.tracked_errors:
+        st.write("### Recorded Errors:")
+        for idx, error in enumerate(st.session_state.tracked_errors, start=1):
+            st.write(f"**{idx}.** {error}")
+
+        # Optional: Provide a button to clear the error log
+        if st.button("Clear Error History"):
+            st.session_state.tracked_errors = []
+            st.success("Error history cleared.")
+    else:
+        st.write("No errors tracked yet. Use the **Error-Specific Guidance** feature to analyze code.")
+
+
+
 else:
     # Default content when no button is clicked
     st.write("""
     Welcome to MentorAI! Click any of the buttons above to learn more about the features of this application.
     """)
-
-# else:
-#     # Default content when no button is clicked
-#     st.write("""
-#     Welcome to the Interactive Coding Helper! Click any of the buttons above to learn more about the features of this application.
-#     """)
-
-# # Sidebar for input and concept options
-# st.sidebar.header("Input Code Here")
-# code_input = st.sidebar.text_area("Paste your code snippet:", height=200)
-
-# # Button to analyze code
-# if st.sidebar.button("Analyze Code"):
-#     st.write("Analyzing your code and generating hints...")
-#     # Call function to get hints from OpenAI API (to be implemented)
-
-# # Area to display hints
-# st.header("Hints and Resources")
-# hint_area = st.empty()  # Placeholder for hints
-# concept_area = st.empty()  # Placeholder for related concepts
-# pseudocode_area = st.empty()  # Placeholder for pseudocode
-
-# # Display additional resources
-# st.header("Additional Resources")
-# st.write("Links to further study and practice will appear here.")
-
-# if code_input:
-#     # Fetch and display hint
-#     hint = get_error_specific_hint(code_input)
-#     hint_area.write("Hint: " + hint)
-
-#     # Fetch and display related concepts
-#     related_concepts = get_related_concepts(code_input)
-#     concept_area.write("Related Concepts: " + related_concepts)
-
-#     # Fetch and display pseudocode outline
-#     pseudocode_outline = generate_pseudocode_outline(code_input)
-#     pseudocode_area.write("Pseudocode Outline:\n" + pseudocode_outline)
-
-
