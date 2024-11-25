@@ -1,8 +1,28 @@
 import streamlit as st
 import openai
+import json
+import os
 
 # Set up OpenAI API key
 openai.api_key = "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"
+
+def get_error_file(student_code):
+    """Generate the filename for storing a user's errors."""
+    return f"errors_{student_code}.json"
+
+def load_user_errors(student_code):
+    """Load the error patterns for a specific student."""
+    file_name = get_error_file(student_code)
+    if os.path.exists(file_name):
+        with open(file_name, "r") as file:
+            return json.load(file)
+    return []  # Return an empty list if no file exists
+
+def save_user_errors(student_code, errors):
+    """Save the error patterns for a specific student."""
+    file_name = get_error_file(student_code)
+    with open(file_name, "w") as file:
+        json.dump(errors, file)
 
 def get_error_specific_hint(code):
     """
@@ -51,6 +71,22 @@ def error_tracking(code):
 
 st.title("MentorAI 🤖")
 
+# Prompt the user for their student code
+if 'student_code' not in st.session_state:
+    st.session_state.student_code = None
+
+if not st.session_state.student_code:
+    st.title("Welcome to Error Tracker")
+    st.session_state.student_code = st.text_input("Enter your student code:", "")
+    
+    if st.session_state.student_code:
+        # Load errors for this user
+        st.session_state.tracked_errors = load_user_errors(st.session_state.student_code)
+        st.success(f"Welcome, student {st.session_state.student_code}! Your error history is loaded.")
+    else:
+        st.stop()  # Stop the app until a valid student code is entered
+
+
 if 'active_feature' not in st.session_state:
     st.session_state.active_feature = None
 
@@ -93,6 +129,10 @@ if st.session_state.active_feature == 'error_guidance':
                         st.session_state.tracked_errors = []
                     st.session_state.tracked_errors.append(error_description)
                     st.write("Hint: " + hint)
+
+                    # Save errors to the user's file
+                    save_user_errors(st.session_state.student_code, st.session_state.tracked_errors)
+
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
         else:
@@ -132,15 +172,19 @@ elif st.session_state.active_feature == 'error_tracking':
     Students can review their mistakes to identify patterns and focus on areas for improvement.
     """)
 
+    # Load errors from the file to ensure the latest data is displayed
+    st.session_state.tracked_errors = load_user_errors(st.session_state.student_code)
+
     # Display tracked errors
     if 'tracked_errors' in st.session_state and st.session_state.tracked_errors:
         st.write("### Recorded Errors:")
         for idx, error in enumerate(st.session_state.tracked_errors, start=1):
             st.write(f"**{idx}.** {error}")
-
-        # Optional: Provide a button to clear the error log
+        
+        # Optional: Clear error history for the current user
         if st.button("Clear Error History"):
             st.session_state.tracked_errors = []
+            save_user_errors(st.session_state.student_code, [])
             st.success("Error history cleared.")
     else:
         st.write("No errors tracked yet. Use the **Error-Specific Guidance** feature to analyze code.")
