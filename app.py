@@ -70,18 +70,12 @@ def error_tracking(code):
     )
     return completion.choices[0].message.content
 
-def generate_practice_questions_artistic(error_type):
+def generate_practice_questions_artistic(error_type, code):
     """
     Generate 2-3 artistic and engaging practice questions based on the error type using the LLM.
     """
     try:
-        prompt = f"""
-        use few shot training.
-        A student is struggling with the following type of error:
-        {error_type}
-
-        Create one Python practice questions related to the error type.
-
+        prompt = f"""You are an exercise programming question designer, and the student is struggling with this type of question{error_type}, and here is the code student provided, which contains the error: {code}, Please just output the question you design to help students practice this knowledge. Do not output any other things.
         
         """
         completion = openai.chat.completions.create(
@@ -220,9 +214,8 @@ if st.session_state.active_feature == 'error_guidance':
 
                         # Generate practice questions
                         with st.spinner("Creating practice questions..."):
-                            practice_questions = generate_practice_questions_artistic(hint)
-                            for idx, question in enumerate(practice_questions, start=1):
-                                st.write(f"**{idx}. {question}**")
+                            practice_questions = generate_practice_questions_artistic(error_description, code_input)
+                            st.write(practice_questions)
 
                         # Add a button to close the pop-up
                         if st.button("Close"):
