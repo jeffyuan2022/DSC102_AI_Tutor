@@ -70,6 +70,31 @@ def error_tracking(code):
     )
     return completion.choices[0].message.content
 
+def get_concept_suggestions(question):
+    """
+    Get suggested concepts to explore based on the student's question.
+    """
+    completion = openai.ChatCompletion.create(
+        model="gpt-4",  # Note: Changed from "gpt-4o" to "gpt-4"
+        messages=[
+            {"role": "user", "content": f"""
+            Based on this programming question: {question}
+            
+            1. Identify the main programming concepts involved
+            2. Suggest 3-5 related concepts that would be valuable to explore
+            3. Provide a brief explanation of why these concepts are related
+            
+            Format the response as:
+            Main Concept: [concept]
+            Related Concepts:
+            - [concept 1]: [brief explanation]
+            - [concept 2]: [brief explanation]
+            - [concept 3]: [brief explanation]
+            """}
+        ]
+    )
+    return completion.choices[0]["message"]["content"]
+
 st.title("MentorAI 🤖")
 
 # Prompt the user for their student code
@@ -94,7 +119,7 @@ if 'active_feature' not in st.session_state:
     st.session_state.active_feature = None
 
 # Create three columns for the buttons
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 
 # Place buttons in separate columns to arrange them horizontally
 with col1:
@@ -109,6 +134,9 @@ with col3:
 with col4:  # Add this under the existing buttons
     if st.button("📊Error Tracking"):
         st.session_state.active_feature = 'error_tracking'
+with col5:
+    if st.button("🔍 Concept Explorer"):
+        st.session_state.active_feature = 'concept_explorer'
 error_description = ""
 # Define behavior based on the button clicked
 if st.session_state.active_feature == 'error_guidance':
@@ -213,6 +241,27 @@ elif st.session_state.active_feature == 'error_tracking':
         st.session_state.error_frequencies = {}
         save_user_errors(st.session_state.student_code, {"tracked_errors": [], "error_frequencies": {}})
         st.success("Error history cleared.")
+
+elif st.session_state.active_feature == 'concept_explorer':
+    st.subheader("🔍 Concept Explorer")
+    st.write("""
+    This feature helps you discover related programming concepts based on your question.
+    Input your programming question to see what other topics you might want to explore!
+    """)
+    
+    question = st.text_area("Enter your programming question:", height=100)
+    
+    if st.button("Explore Related Concepts"):
+        if question.strip():
+            with st.spinner("Finding related concepts..."):
+                try:
+                    concepts = get_concept_suggestions(question)
+                    st.write(concepts)
+                    
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
+        else:
+            st.error("Please enter a question first.")
 
 
 
