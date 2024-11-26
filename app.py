@@ -11,18 +11,19 @@ def get_error_file(student_code):
     return f"errors_{student_code}.json"
 
 def load_user_errors(student_code):
-    """Load the error patterns for a specific student."""
+    """Load the error patterns and frequencies for a specific student."""
     file_name = get_error_file(student_code)
     if os.path.exists(file_name):
         with open(file_name, "r") as file:
-            return json.load(file)
-    return []  # Return an empty list if no file exists
+            data = json.load(file)
+            return data.get("tracked_errors", []), data.get("error_frequencies", {})
+    return [], {}  # Default to empty data if file doesn't exist
 
-def save_user_errors(student_code, errors):
-    """Save the error patterns for a specific student."""
+def save_user_errors(student_code, data):
+    """Save the error patterns and frequencies for a specific student."""
     file_name = get_error_file(student_code)
     with open(file_name, "w") as file:
-        json.dump(errors, file)
+        json.dump(data, file)
 
 def get_error_specific_hint(code):
     """
@@ -76,15 +77,17 @@ if 'student_code' not in st.session_state:
     st.session_state.student_code = None
 
 if not st.session_state.student_code:
-    st.title("Welcome to Error Tracker")
     st.session_state.student_code = st.text_input("Enter your student code:", "")
     
     if st.session_state.student_code:
-        # Load errors for this user
-        st.session_state.tracked_errors = load_user_errors(st.session_state.student_code)
+        # Load errors and frequencies for this user
+        tracked_errors, error_frequencies = load_user_errors(st.session_state.student_code)
+        st.session_state.tracked_errors = tracked_errors
+        st.session_state.error_frequencies = error_frequencies
         st.success(f"Welcome, student {st.session_state.student_code}! Your error history is loaded.")
     else:
         st.stop()  # Stop the app until a valid student code is entered
+
 
 
 if 'active_feature' not in st.session_state:
@@ -127,11 +130,30 @@ if st.session_state.active_feature == 'error_guidance':
                     # Track the error
                     if 'tracked_errors' not in st.session_state:
                         st.session_state.tracked_errors = []
+                    # Track frequency of this error
+                    if 'error_frequencies' not in st.session_state:
+                        st.session_state.error_frequencies = {}
+                    
+                    # Increment the frequency of the current error
+                    if error_description in st.session_state.error_frequencies:
+                        st.session_state.error_frequencies[error_description] += 1
+                    else:
+                        st.session_state.error_frequencies[error_description] = 1
+                    
                     st.session_state.tracked_errors.append(error_description)
                     st.write("Hint: " + hint)
+                    # Notify if this error has been repeated multiple times
+                    if st.session_state.error_frequencies[error_description] >= 3:
+                        st.warning(f"You've encountered this type of error: {error_description} multiple times ({st.session_state.error_frequencies[error_description]} times). Consider revisiting this topic to strengthen your understanding.")
 
-                    # Save errors to the user's file
-                    save_user_errors(st.session_state.student_code, st.session_state.tracked_errors)
+                    # Save errors and frequencies to the user's file
+                    save_user_errors(
+                        st.session_state.student_code, 
+                        {
+                            "tracked_errors": st.session_state.tracked_errors,
+                            "error_frequencies": st.session_state.error_frequencies,
+                        }
+                    )
 
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
@@ -167,27 +189,31 @@ elif st.session_state.active_feature == 'concept_links':
 
 elif st.session_state.active_feature == 'error_tracking':
     st.subheader("📊 Error Tracking")
+    st.write(f"Student Code: {st.session_state.student_code}")
     st.write("""
     This feature tracks all errors detected during the Error-Specific Guidance sessions.
-    Students can review their mistakes to identify patterns and focus on areas for improvement.
+    Below is a summary of your errors categorized by type.
     """)
 
-    # Load errors from the file to ensure the latest data is displayed
-    st.session_state.tracked_errors = load_user_errors(st.session_state.student_code)
+    # Load errors and frequencies from the file to ensure the latest data
+    st.session_state.tracked_errors = load_user_errors(st.session_state.student_code)[0]
+    st.session_state.error_frequencies = load_user_errors(st.session_state.student_code)[1]
 
-    # Display tracked errors
-    if 'tracked_errors' in st.session_state and st.session_state.tracked_errors:
-        st.write("### Recorded Errors:")
-        for idx, error in enumerate(st.session_state.tracked_errors, start=1):
-            st.write(f"**{idx}.** {error}")
-        
-        # Optional: Clear error history for the current user
-        if st.button("Clear Error History"):
-            st.session_state.tracked_errors = []
-            save_user_errors(st.session_state.student_code, [])
-            st.success("Error history cleared.")
+    # Display summary of error frequencies
+    if st.session_state.error_frequencies:
+        st.write("### Error Summary:")
+        for idx, (error_type, count) in enumerate(st.session_state.error_frequencies.items(), start=1):
+            st.write(f"**{idx}. {error_type}: {count}**")
     else:
         st.write("No errors tracked yet. Use the **Error-Specific Guidance** feature to analyze code.")
+
+    # Optional: Clear error history for the current user
+    if st.button("Clear Error History"):
+        st.session_state.tracked_errors = []
+        st.session_state.error_frequencies = {}
+        save_user_errors(st.session_state.student_code, {"tracked_errors": [], "error_frequencies": {}})
+        st.success("Error history cleared.")
+
 
 
 
