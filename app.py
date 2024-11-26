@@ -70,11 +70,36 @@ def error_tracking(code):
     )
     return completion.choices[0].message.content
 
+def generate_practice_questions_artistic(error_type):
+    """
+    Generate 2-3 artistic and engaging practice questions based on the error type using the LLM.
+    """
+    try:
+        prompt = f"""
+        use few shot training.
+        A student is struggling with the following type of error:
+        {error_type}
+
+        Create one Python practice questions related to the error type.
+
+        
+        """
+        completion = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        response = completion.choices[0].message.content.strip()
+        return response.split("\n")  # Split response into separate questions
+    except Exception as e:
+        return [f"An error occurred while generating questions: {e}"]
+
 def get_concept_suggestions(question):
     """
     Get suggested concepts to explore based on the student's question.
     """
-    completion = openai.ChatCompletion.create(
+    completion = openai.chat.completions.create(
         model="gpt-4",  # Note: Changed from "gpt-4o" to "gpt-4"
         messages=[
             {"role": "user", "content": f"""
@@ -93,13 +118,19 @@ def get_concept_suggestions(question):
             """}
         ]
     )
-    return completion.choices[0]["message"]["content"]
+    return completion.choices[0].message.content.strip()
 
 st.title("MentorAI 🤖")
+
+error_description = ""
+hint = ""
 
 # Prompt the user for their student code
 if 'student_code' not in st.session_state:
     st.session_state.student_code = None
+
+if 'round' not in st.session_state:
+    st.session_state.round = 0
 
 if not st.session_state.student_code:
     st.session_state.student_code = st.text_input("Enter your student code:", "")
@@ -117,6 +148,9 @@ if not st.session_state.student_code:
 
 if 'active_feature' not in st.session_state:
     st.session_state.active_feature = None
+
+if 'show_practice_popup' not in st.session_state:
+    st.session_state.show_practice_popup = True
 
 # Create three columns for the buttons
 col1, col2, col3, col4, col5 = st.columns(5)
@@ -137,7 +171,8 @@ with col4:  # Add this under the existing buttons
 with col5:
     if st.button("🔍 Concept Explorer"):
         st.session_state.active_feature = 'concept_explorer'
-error_description = ""
+# error_description = ""
+# Define behavior based on the button clicked
 # Define behavior based on the button clicked
 if st.session_state.active_feature == 'error_guidance':
     # Display content for Error-Specific Guidance and Hints
@@ -173,6 +208,26 @@ if st.session_state.active_feature == 'error_guidance':
                     # Notify if this error has been repeated multiple times
                     if st.session_state.error_frequencies[error_description] >= 3:
                         st.warning(f"You've encountered this type of error: {error_description} multiple times ({st.session_state.error_frequencies[error_description]} times). Consider revisiting this topic to strengthen your understanding.")
+                        # print("hey")
+                        st.session_state.show_practice_popup = True
+                        st.session_state.round += 1
+                        # Add a button to trigger the pop-up
+                        # Check if the pop-up should be displayed
+                    if st.session_state.get("show_practice_popup", True) and st.session_state.round > 0:
+                        st.title("Practice Questions")
+                        st.markdown("### Practice Questions")
+                        st.write("Here are some practice questions based on your repeated errors:")
+
+                        # Generate practice questions
+                        with st.spinner("Creating practice questions..."):
+                            practice_questions = generate_practice_questions_artistic(hint)
+                            for idx, question in enumerate(practice_questions, start=1):
+                                st.write(f"**{idx}. {question}**")
+
+                        # Add a button to close the pop-up
+                        if st.button("Close"):
+                            st.session_state.show_practice_popup = False  # Reset the flag
+                        st.stop()  # Prevent further execution
 
                     # Save errors and frequencies to the user's file
                     save_user_errors(
@@ -187,6 +242,7 @@ if st.session_state.active_feature == 'error_guidance':
                     st.error(f"An error occurred: {e}")
         else:
             st.error("Please paste a valid code snippet.")
+            st.session_state.round += 1
 
 
 elif st.session_state.active_feature == 'Pesudo Answer Generation':
