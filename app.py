@@ -25,14 +25,53 @@ def save_user_errors(student_code, data):
     with open(file_name, "w") as file:
         json.dump(data, file)
 
-def get_error_specific_hint(code):
+# def get_error_specific_hint(code):
+#     """
+#     Uses OpenAI API to analyze code errors and provide hints.
+#     """
+#     completion = openai.chat.completions.create(
+#         model="gpt-4o",
+#         messages=[
+#             {"role": "user", "content": f"Analyze the following code for errors and suggest hints:\n\n{code}"}
+#         ]
+#     )
+#     return completion.choices[0].message.content
+
+def get_error_specific_hint(code, hint_level):
     """
-    Uses OpenAI API to analyze code errors and provide hints.
+    Uses OpenAI API to analyze code errors and provide hints based on the level.
     """
+    hint_descriptions = {
+        1: "Provide a very general and high-level hint to guide the user.",
+        2: "Provide a slightly specific hint that gives some direction but remains general.",
+        3: "Provide a moderately detailed hint, focusing on the error or problem area.",
+        4: "Provide a detailed hint, explaining the error and how to resolve it.",
+        5: "Provide a comprehensive and detailed explanation, almost solving the issue."
+    }
+
+    prompt = f"""
+    Analyze the following code and provide a hint based on the user's selected level of guidance. 
+    The levels are defined as follows:
+    Level 1: {hint_descriptions[1]}
+    Level 2: {hint_descriptions[2]}
+    Level 3: {hint_descriptions[3]}
+    Level 4: {hint_descriptions[4]}
+    Level 5: {hint_descriptions[5]}
+    
+    Hint Level: {hint_level}
+    
+    Code:
+    ```
+    {code}
+    ```
+    
+    Provide a hint at Level {hint_level}.
+    """
+
     completion = openai.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "user", "content": f"Analyze the following code for errors and suggest hints:\n\n{code}"}
+            {"role": "user", "content": prompt}
         ]
     )
     return completion.choices[0].message.content
@@ -75,8 +114,7 @@ def generate_practice_questions_artistic(error_type, code):
     Generate 2-3 artistic and engaging practice questions based on the error type using the LLM.
     """
     try:
-        prompt = f"""You are an exercise programming question designer, and the student is struggling with this type of question{error_type}, and here is the code student provided, which contains the error: {code}, Please just output the question you design to help students practice this knowledge. Do not output any other things.
-        
+        prompt = f"""You are an exercise programming question designer, and the student is struggling with this type of question{error_type}, and here is the code student provided, which contains the error: {code}, Please just output the question you design to help students practice this knowledge. Do not output any other things. Output as a .txt file format.
         """
         completion = openai.chat.completions.create(
             model="gpt-4o",
@@ -85,7 +123,7 @@ def generate_practice_questions_artistic(error_type, code):
             ]
         )
         response = completion.choices[0].message.content.strip()
-        return response.split("\n")  # Split response into separate questions
+        return response
     except Exception as e:
         return [f"An error occurred while generating questions: {e}"]
 
@@ -177,12 +215,13 @@ if st.session_state.active_feature == 'error_guidance':
     on their own while learning from the process.
     """)
     code_input = st.text_area("Paste your code snippet here:", height=200)
+    hint_level = st.slider("Choose Hint Level (1: General, 5: Detailed)", 1, 5, 1)
 
     if st.button("Analyze Code"):
         if code_input.strip():
             with st.spinner("Analyzing your code..."):
                 try:
-                    hint = get_error_specific_hint(code_input)
+                    hint = get_error_specific_hint(code_input, hint_level)
                     error_description = error_tracking(code_input)
                     # Track the error
                     if 'tracked_errors' not in st.session_state:
@@ -207,6 +246,16 @@ if st.session_state.active_feature == 'error_guidance':
                         st.session_state.round += 1
                         # Add a button to trigger the pop-up
                         # Check if the pop-up should be displayed
+
+                    # Save errors and frequencies to the user's file
+                    save_user_errors(
+                        st.session_state.student_code, 
+                        {
+                            "tracked_errors": st.session_state.tracked_errors,
+                            "error_frequencies": st.session_state.error_frequencies,
+                        }
+                    )
+
                     if st.session_state.get("show_practice_popup", True) and st.session_state.round > 0:
                         st.title("Practice Questions")
                         st.markdown("### Practice Questions")
@@ -221,15 +270,6 @@ if st.session_state.active_feature == 'error_guidance':
                         if st.button("Close"):
                             st.session_state.show_practice_popup = False  # Reset the flag
                         st.stop()  # Prevent further execution
-
-                    # Save errors and frequencies to the user's file
-                    save_user_errors(
-                        st.session_state.student_code, 
-                        {
-                            "tracked_errors": st.session_state.tracked_errors,
-                            "error_frequencies": st.session_state.error_frequencies,
-                        }
-                    )
 
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
