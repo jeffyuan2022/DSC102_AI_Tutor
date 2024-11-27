@@ -120,7 +120,11 @@ def error_tracking(code):
             {"role": "user", "content": f"Here is the student's code: {code}, would you please attribute the code to one of the following category:[Algorithm, Data Structure, String Manipulation, Array and Matrix operation, Mathematical and Logical, Recursion and Backtracking, Searching and Sorting, Dynamic Programming, System Design, Object-Oriented Programming, Database and SQL, Real-World Simulation, Problem-Solving with APIs, Optimization] and output your answer in this format: [[your_answer]]? You MUST output one category in the list"}
         ]
     )
-    return completion.choices[0].message.content
+    # Remove brackets [[ ]] from the output
+    error_category = completion.choices[0].message.content.strip()
+    if error_category.startswith("[[") and error_category.endswith("]]"):
+        error_category = error_category[2:-2]  # Remove the outer [[ ]]
+    return error_category
 
 def generate_practice_questions_artistic(error_type, code):
     """
@@ -326,10 +330,18 @@ elif st.session_state.active_feature == 'concept_links':
     For example, if you're struggling with recursion, you will receive a link to a tutorial on base cases and recursion.
     """)
 
-    # Load errors
-    if st.session_state.tracked_errors:
+    # Load errors and frequencies
+    if st.session_state.tracked_errors and st.session_state.error_frequencies:
+        # Combine concepts with their frequencies for display
+        concept_options = [
+            f"{concept} (Errors: {st.session_state.error_frequencies.get(concept, 0)})"
+            for concept in set(st.session_state.tracked_errors)
+        ]
         st.write("Tracked Errors (Select a concept to explore):")
-        concept = st.selectbox("Choose a concept", list(set(st.session_state.tracked_errors)))
+        selected_option = st.selectbox("Choose a concept", concept_options)
+        
+        # Extract the concept name from the selected option
+        concept = selected_option.split(" (")[0]
     else:
         st.write("No errors tracked for this user.")
 
@@ -339,7 +351,6 @@ elif st.session_state.active_feature == 'concept_links':
         st.write("### Study Links")
         for link in links:
             st.write(f"- {link}")
-
 ################################################### Yiheng Testing ###################################################
 
 elif st.session_state.active_feature == 'error_tracking':
