@@ -1,4 +1,5 @@
 import streamlit as st
+import requests
 import openai
 import json
 import os
@@ -24,18 +25,6 @@ def save_user_errors(student_code, data):
     file_name = get_error_file(student_code)
     with open(file_name, "w") as file:
         json.dump(data, file)
-
-# def get_error_specific_hint(code):
-#     """
-#     Uses OpenAI API to analyze code errors and provide hints.
-#     """
-#     completion = openai.chat.completions.create(
-#         model="gpt-4o",
-#         messages=[
-#             {"role": "user", "content": f"Analyze the following code for errors and suggest hints:\n\n{code}"}
-#         ]
-#     )
-#     return completion.choices[0].message.content
 
 def get_error_specific_hint(code, hint_level):
     """
@@ -76,17 +65,41 @@ def get_error_specific_hint(code, hint_level):
     )
     return completion.choices[0].message.content
 
-def get_related_concepts(code):
+# def get_related_concepts(code):
+#     """
+#     Suggest related concepts based on the student's code.
+#     """
+#     completion = openai.chat.completions.create(
+#         model="gpt-4o",
+#         messages=[
+#             {"role": "user", "content": f"Identify programming concepts related to this code snippet:\n\n{code}"}
+#         ]
+#     )
+#     return completion.choices[0].message.content
+
+################################################### Yiheng Testing ###################################################
+def search_concept_links(concept):
     """
-    Suggest related concepts based on the student's code.
+    Search for study resources related to a concept using SerpApi.
     """
-    completion = openai.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "user", "content": f"Identify programming concepts related to this code snippet:\n\n{code}"}
-        ]
-    )
-    return completion.choices[0].message.content
+    api_key = "9809cdc19c68cb1f3379fca7d5c227eb52f5e8cd4e9c70ae9bfb02ed31792bf8"
+    search_url = "https://serpapi.com/search.json"
+    
+    params = {
+        "q": concept,  # Search query
+        "hl": "en",    # Language
+        "num": 5,      # Number of results
+        "api_key": api_key
+    }
+    
+    response = requests.get(search_url, params=params)
+    if response.status_code == 200:
+        search_results = response.json().get("organic_results", [])
+        links = [f"{result['title']}: {result['link']}" for result in search_results]
+        return links
+    else:
+        return ["Unable to fetch resources. Please try again later."]
+################################################### Yiheng Testing ###################################################
 
 def generate_pseudocode_outline(code):
     """
@@ -291,6 +304,20 @@ elif st.session_state.active_feature == 'Pesudo Answer Generation':
         result = generate_pseudocode_outline(code_input)
         st.write(result)
 
+################################################### Yiheng Testing ###################################################
+# elif st.session_state.active_feature == 'concept_links':
+#     # Display content for Concept Links and Related Resources
+#     st.subheader("Concept Links and Related Resources")
+#     st.write("""
+#     Each hint includes links to external resources that help explain foundational programming concepts.
+#     For example, if you're struggling with recursion, you will receive a link to a tutorial on base cases and recursion.
+#     """)
+#     code_input = st.text_area("Paste your code snippet here:", height=200)
+
+#     if st.button("Get Related Concepts"):
+#         related_concept = get_related_concepts(code_input)
+#         st.write("Related Concepts: " + related_concept)
+
 elif st.session_state.active_feature == 'concept_links':
     # Display content for Concept Links and Related Resources
     st.subheader("Concept Links and Related Resources")
@@ -298,11 +325,22 @@ elif st.session_state.active_feature == 'concept_links':
     Each hint includes links to external resources that help explain foundational programming concepts.
     For example, if you're struggling with recursion, you will receive a link to a tutorial on base cases and recursion.
     """)
-    code_input = st.text_area("Paste your code snippet here:", height=200)
 
-    if st.button("Get Related Concepts"):
-        related_concept = get_related_concepts(code_input)
-        st.write("Related Concepts: " + related_concept)
+    # Load errors
+    if st.session_state.tracked_errors:
+        st.write("Tracked Errors (Select a concept to explore):")
+        concept = st.selectbox("Choose a concept", list(set(st.session_state.tracked_errors)))
+    else:
+        st.write("No errors tracked for this user.")
+
+    if "concept" in locals() and st.button("Get Study Links"):
+        st.write(f"Fetching study links for concept: **{concept}**")
+        links = search_concept_links(concept)
+        st.write("### Study Links")
+        for link in links:
+            st.write(f"- {link}")
+
+################################################### Yiheng Testing ###################################################
 
 elif st.session_state.active_feature == 'error_tracking':
     st.subheader("📊 Error Tracking")
