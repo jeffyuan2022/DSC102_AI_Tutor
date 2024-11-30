@@ -3,6 +3,13 @@ import requests
 import openai
 import json
 import os
+import boto3
+
+# Initialize S3 client
+s3 = boto3.client('s3')
+
+os.environ['AWS_ACCESS_KEY_ID'] = "AKIAR3HUODFIYESUR3IY"
+os.environ['AWS_SECRET_ACCESS_KEY'] = "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"
 
 # Set up OpenAI API key
 openai.api_key = "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"
