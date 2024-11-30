@@ -4,6 +4,7 @@ import openai
 import json
 import os
 import boto3
+import matplotlib.pyplot as plt
 
 # Initialize S3 client
 s3 = boto3.client('s3')
@@ -121,10 +122,31 @@ def generate_pseudocode_outline(code):
     return completion.choices[0].message.content
 
 def error_tracking(code):
+
+# Build the conversation history to provide context to MentorAI
+    conversation_history = ""
+    for turn in st.session_state.conversation_history:
+        conversation_history += f"User's Code: {turn['user']}\nError Type: {turn['error_type']}\n"
+
+    # Create the prompt for the error categorization
+    prompt = f"""
+    Here is the student's current code: {code}
+    
+    Here are all previous questions the user has asked and the corresponding error types:
+    {conversation_history}
+
+    If you think the current question's error type is similar to that of a previous one, please attribute the current input's error type to that of the previous one.
+
+    Otherwise, please attribute the current code to one of the following categories:
+    [Algorithm, Data Structure, String Manipulation, Array and Matrix operation, Mathematical and Logical, Recursion and Backtracking, Searching and Sorting, Dynamic Programming, System Design, Object-Oriented Programming, Database and SQL, Real-World Simulation, Problem-Solving with APIs, Optimization].
+
+    Output your answer in this format: [[your_answer]]. You MUST output one category from the list.
+    """
+
     completion = openai.chat.completions.create(
         model = "gpt-4o",
         messages=[
-            {"role": "user", "content": f"Here is the student's code: {code}, would you please attribute the code to one of the following category:[Algorithm, Data Structure, String Manipulation, Array and Matrix operation, Mathematical and Logical, Recursion and Backtracking, Searching and Sorting, Dynamic Programming, System Design, Object-Oriented Programming, Database and SQL, Real-World Simulation, Problem-Solving with APIs, Optimization] and output your answer in this format: [[your_answer]]? You MUST output one category in the list"}
+            {"role": "user", "content": prompt}
         ]
     )
     # Remove brackets [[ ]] from the output
@@ -176,6 +198,29 @@ def get_concept_suggestions(question):
     )
     return completion.choices[0].message.content.strip()
 
+def visualize_error_types_donut(error_frequencies):
+    labels = list(error_frequencies.keys())
+    sizes = list(error_frequencies.values())
+
+    # Creating the donut chart
+    fig, ax = plt.subplots()
+    wedges, texts, autotexts = ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, wedgeprops={'edgecolor': 'white'})
+    
+    # Draw a circle at the center to make it a donut
+    center_circle = plt.Circle((0, 0), 0.70, fc='white')
+    fig.gca().add_artist(center_circle)
+
+    # Styling the chart
+    ax.axis('equal')  # Ensures that the pie is drawn as a circle.
+    plt.setp(autotexts, size=10, weight="bold")
+    plt.setp(texts, size=9)
+
+    # Title in the center of the donut chart
+    plt.text(0, 0, f"Total Errors: {sum(sizes)}", horizontalalignment='center', verticalalignment='center', fontsize=12, weight='bold')
+
+    # Display the donut chart in Streamlit
+    st.pyplot(fig)
+
 st.title("MentorAI 🤖")
 
 error_description = ""
@@ -187,6 +232,9 @@ if 'student_code' not in st.session_state:
 
 if 'round' not in st.session_state:
     st.session_state.round = 0
+
+if "conversation_history" not in st.session_state:
+    st.session_state.conversation_history = []
 
 if not st.session_state.student_code:
     st.session_state.student_code = st.text_input("Enter your student code:", "")
@@ -238,6 +286,14 @@ if st.session_state.active_feature == 'error_guidance':
     The hints start with general guidance and become more specific as needed, helping students solve issues
     on their own while learning from the process.
     """)
+
+    # Display conversation history
+    if st.session_state.conversation_history:
+        st.write("### Conversation History")
+        for turn in st.session_state.conversation_history:
+            st.markdown(f"**You:** {turn['user']}")
+            st.markdown(f"**MentorAI:** {turn['assistant']}")
+
     code_input = st.text_area("Paste your code snippet here:", height=200)
     hint_level = st.slider("Choose Hint Level (1: General, 5: Detailed)", 1, 5, 1)
 
@@ -246,7 +302,23 @@ if st.session_state.active_feature == 'error_guidance':
             with st.spinner("Analyzing your code..."):
                 try:
                     hint = get_error_specific_hint(code_input, hint_level)
-                    error_description = error_tracking(code_input)
+
+                    # Update conversation history
+                    st.session_state.conversation_history.append({
+                        "user": f"Code Input:\n{code_input}\nHint Level: {hint_level}",
+                        "assistant": hint,
+                        "error_type": error_tracking(code_input)
+                    })
+                    
+                    st.markdown("**Hint:** " + hint)
+
+                    # Display updated conversation history
+                    st.write("### Conversation History")
+                    for turn in st.session_state.conversation_history:
+                        st.markdown(f"**You:** {turn['user']}")
+                        st.markdown(f"**MentorAI:** {turn['assistant']}")
+                        error_description = error_tracking(code_input)
+                    
                     # Track the error
                     if 'tracked_errors' not in st.session_state:
                         st.session_state.tracked_errors = []
@@ -261,7 +333,7 @@ if st.session_state.active_feature == 'error_guidance':
                         st.session_state.error_frequencies[error_description] = 1
                     
                     st.session_state.tracked_errors.append(error_description)
-                    st.write("Hint: " + hint)
+                    # st.write("Hint: " + hint)
                     # Notify if this error has been repeated multiple times
                     if st.session_state.error_frequencies[error_description] >= 3:
                         st.warning(f"You've encountered this type of error: {error_description} multiple times ({st.session_state.error_frequencies[error_description]} times). Consider revisiting this topic to strengthen your understanding.")
@@ -377,6 +449,7 @@ elif st.session_state.active_feature == 'error_tracking':
         st.write("### Error Summary:")
         for idx, (error_type, count) in enumerate(st.session_state.error_frequencies.items(), start=1):
             st.write(f"**{idx}. {error_type}: {count}**")
+        visualize_error_types_donut(st.session_state.error_frequencies)
     else:
         st.write("No errors tracked yet. Use the **Error-Specific Guidance** feature to analyze code.")
 
@@ -407,6 +480,7 @@ elif st.session_state.active_feature == 'concept_explorer':
                     st.error(f"An error occurred: {e}")
         else:
             st.error("Please enter a question first.")
+    
 
 
 
