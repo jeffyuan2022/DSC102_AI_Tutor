@@ -310,8 +310,8 @@ if st.session_state.active_feature == 'error_guidance':
         for turn in st.session_state.conversation_history:
             st.markdown(f"**You:** {turn['user']}")
             st.markdown(f"**MentorAI:** {turn['assistant']}")
-
-    code_input = st.text_area("Paste your code snippet here:", height=200)
+    st.markdown("**Paste your question here:**")
+    code_input = st.text_area("", height=200)
     hint_level = st.slider("Choose Hint Level (1: General, 5: Detailed)", 1, 5, 1)
 
     if st.button("Analyze Code"):
@@ -327,6 +327,8 @@ if st.session_state.active_feature == 'error_guidance':
                         "error_type": error_tracking(code_input)
                     })
                     error_description = error_tracking(code_input)
+                    st.write("Your code: ")
+                    st.code(code_input)
                     st.markdown("**Hint:** " + hint)
 
                     # # Display updated conversation history
