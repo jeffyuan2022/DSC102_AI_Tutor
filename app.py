@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 # Initialize S3 client
 s3 = boto3.client('s3')
+BUCKET_NAME = "lign167project"
 
 os.environ['AWS_ACCESS_KEY_ID'] = "AKIAR3HUODFIYESUR3IY"
 os.environ['AWS_SECRET_ACCESS_KEY'] = "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"
@@ -221,6 +222,21 @@ def visualize_error_types_donut(error_frequencies):
     # Display the donut chart in Streamlit
     st.pyplot(fig)
 
+def update_user_errors_in_s3(bucket_name, student_code, data):
+    file_name = f"errors_{student_code}.json"
+    json_data = json.dumps(data)
+    s3.put_object(Bucket=bucket_name, Key=file_name, Body=json_data, ContentType="application/json")
+
+def load_user_errors_from_s3(bucket_name, student_code):
+    file_name = f"errors_{student_code}.json"
+    try:
+        response = s3.get_object(Bucket=bucket_name, Key=file_name)
+        data = json.loads(response['Body'].read().decode('utf-8'))
+        return data.get("tracked_errors", []), data.get("error_frequencies", {})
+    except s3.exceptions.NoSuchKey:
+        return [], {}  # Default empty data if file doesn't exist
+
+
 st.title("MentorAI 🤖")
 
 error_description = ""
@@ -241,7 +257,8 @@ if not st.session_state.student_code:
     
     if st.session_state.student_code:
         # Load errors and frequencies for this user
-        tracked_errors, error_frequencies = load_user_errors(st.session_state.student_code)
+        tracked_errors, error_frequencies = load_user_errors_from_s3(BUCKET_NAME, st.session_state.student_code)
+        # tracked_errors, error_frequencies = load_user_errors(st.session_state.student_code)
         st.session_state.tracked_errors = tracked_errors
         st.session_state.error_frequencies = error_frequencies
         st.success(f"Welcome, student {st.session_state.student_code}! Your error history is loaded.")
@@ -309,15 +326,15 @@ if st.session_state.active_feature == 'error_guidance':
                         "assistant": hint,
                         "error_type": error_tracking(code_input)
                     })
-                    
+                    error_description = error_tracking(code_input)
                     st.markdown("**Hint:** " + hint)
 
-                    # Display updated conversation history
-                    st.write("### Conversation History")
-                    for turn in st.session_state.conversation_history:
-                        st.markdown(f"**You:** {turn['user']}")
-                        st.markdown(f"**MentorAI:** {turn['assistant']}")
-                        error_description = error_tracking(code_input)
+                    # # Display updated conversation history
+                    # st.write("### Conversation History")
+                    # for turn in st.session_state.conversation_history:
+                    #     st.markdown(f"**You:** {turn['user']}")
+                    #     st.markdown(f"**MentorAI:** {turn['assistant']}")
+                    #     error_description = error_tracking(code_input)
                     
                     # Track the error
                     if 'tracked_errors' not in st.session_state:
@@ -343,12 +360,13 @@ if st.session_state.active_feature == 'error_guidance':
                         # Add a button to trigger the pop-up
                         # Check if the pop-up should be displayed
 
-                    # Save errors and frequencies to the user's file
-                    save_user_errors(
-                        st.session_state.student_code, 
+                    # Save updated data to S3
+                    update_user_errors_in_s3(
+                        BUCKET_NAME,
+                        st.session_state.student_code,
                         {
                             "tracked_errors": st.session_state.tracked_errors,
-                            "error_frequencies": st.session_state.error_frequencies,
+                            "error_frequencies": st.session_state.error_frequencies
                         }
                     )
 
@@ -440,25 +458,36 @@ elif st.session_state.active_feature == 'error_tracking':
     Below is a summary of your errors categorized by type.
     """)
 
-    # Load errors and frequencies from the file to ensure the latest data
-    st.session_state.tracked_errors = load_user_errors(st.session_state.student_code)[0]
-    st.session_state.error_frequencies = load_user_errors(st.session_state.student_code)[1]
+    # Load errors and frequencies from S3 to ensure the latest data
+    tracked_errors, error_frequencies = load_user_errors_from_s3(BUCKET_NAME, st.session_state.student_code)
+    st.session_state.tracked_errors = tracked_errors
+    st.session_state.error_frequencies = error_frequencies
 
     # Display summary of error frequencies
     if st.session_state.error_frequencies:
         st.write("### Error Summary:")
         for idx, (error_type, count) in enumerate(st.session_state.error_frequencies.items(), start=1):
             st.write(f"**{idx}. {error_type}: {count}**")
+
+        # Visualize errors if a visualization function is available
         visualize_error_types_donut(st.session_state.error_frequencies)
     else:
         st.write("No errors tracked yet. Use the **Error-Specific Guidance** feature to analyze code.")
 
     # Optional: Clear error history for the current user
     if st.button("Clear Error History"):
+        # Reset errors in session state
         st.session_state.tracked_errors = []
         st.session_state.error_frequencies = {}
-        save_user_errors(st.session_state.student_code, {"tracked_errors": [], "error_frequencies": {}})
+
+        # Update S3 to clear the file
+        update_user_errors_in_s3(
+            BUCKET_NAME,
+            st.session_state.student_code,
+            {"tracked_errors": [], "error_frequencies": {}}
+        )
         st.success("Error history cleared.")
+
 
 elif st.session_state.active_feature == 'concept_explorer':
     st.subheader("🔍 Concept Explorer")
