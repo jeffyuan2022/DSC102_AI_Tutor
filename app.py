@@ -556,4 +556,37 @@ elif st.session_state.active_feature == 'concept_tracking':
     """)
 
     # Load concepts and frequencies from S3 to ensure the latest data
-    tracked_concepts, concept_frequencies = load_user_errors_from_s3(BUCKET_NAME, st.session_stat
+    tracked_concepts, concept_frequencies = load_user_errors_from_s3(BUCKET_NAME, st.session_state.student_code)
+    st.session_state.tracked_concepts = tracked_concepts
+    st.session_state.concept_frequencies = concept_frequencies
+
+    # Display summary of concept frequencies
+    if st.session_state.concept_frequencies:
+        st.write("### Concept Engagement Summary:")
+        for idx, (concept, count) in enumerate(st.session_state.concept_frequencies.items(), start=1):
+            st.write(f"**{idx}. {concept}: {count} occurrences**")
+
+        # Visualize concept engagement if a visualization function is available
+        visualize_error_types_donut(st.session_state.concept_frequencies)
+    else:
+        st.write("No concepts tracked yet. Use the **Concept Exploration** feature to start learning.")
+
+    # Optional: Clear concept history for the current user
+    if st.button("Clear Concept History"):
+        # Reset concepts in session state
+        st.session_state.tracked_concepts = []
+        st.session_state.concept_frequencies = {}
+
+        # Update S3 to clear the file
+        update_user_errors_in_s3(
+            BUCKET_NAME,
+            st.session_state.student_code,
+            {"tracked_concepts": [], "concept_frequencies": {}}
+        )
+        st.success("Concept history cleared.")
+
+else:
+    # Default content when no button is clicked
+    st.write("""
+    Welcome to MentorAI! Click any of the buttons above to learn more about the features of this application.
+    """)
