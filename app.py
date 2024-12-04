@@ -300,6 +300,29 @@ def load_user_errors_from_s3(bucket_name, student_code):
 
 st.title("MentorAI 🤖")
 
+st.markdown(
+    """
+    <style>
+    .main {
+        background-color: #F1F8E9;
+    }
+    h1, h2 {
+        color: #2E7D32;
+        font-family: "Arial", sans-serif;
+    }
+    .stButton>button {
+        background-color: #FF8A65;
+        color: white;
+        border-radius: 8px;
+        font-weight: bold;
+    }
+    </style>
+
+    """,
+    unsafe_allow_html=True
+)
+
+
 error_description = ""
 hint = ""
 
