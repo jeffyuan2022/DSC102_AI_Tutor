@@ -404,7 +404,7 @@ if st.session_state.active_feature == 'concept_guidance':
             st.markdown(f"**You:** {turn['user']}")
             st.markdown(f"**MentorAI:** {turn['assistant']}")
     st.markdown("**Paste your question here:**")
-    code_input = st.text_area("", height=200)
+    code_input = st.text_area("Input your question or topic:", height=200, label_visibility="collapsed")
     hint_level = st.slider("Choose Hint Level (1: General, 5: Detailed)", 1, 5, 1)
 
 
