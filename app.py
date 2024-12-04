@@ -208,6 +208,33 @@ def generate_practice_questions_artistic(concept, input_text):
     except Exception as e:
         return [f"An error occurred while generating questions: {e}"]
 
+def get_practice_questions_answers(practice_questions):
+    try:
+        # Define the prompt for generating practice questions
+        prompt = f"""
+        Please use this context as reference when you are answering these questions: 
+        You are an answerer of these questions: {practice_questions}.
+        
+        Provide only the answers as output, without any additional text or explanations
+        Please answer these questions as concise as possible.
+        Ensure the questions are aligned with the DSC102 course content.
+        """
+        
+        # Use OpenAI's API to generate the practice questions
+        completion = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        # Extract the response
+        response = completion.choices[0].message.content.strip()
+        return response
+    
+    except Exception as e:
+        return [f"An error occurred while generating questions: {e}"]
+
 def get_concept_suggestions(question):
     """
     Get suggested concepts to explore based on the student's question.
@@ -307,25 +334,31 @@ if 'active_feature' not in st.session_state:
 if 'show_practice_popup' not in st.session_state:
     st.session_state.show_practice_popup = True
 
+if 'practice_questions_indicator' not in st.session_state:
+    st.session_state.practice_questions_indicator = False
+
+if 'show_answer_indicator' not in st.session_state:
+    st.session_state.show_answer_indicator = False
+
+if 'practice_questions' not in st.session_state:
+    st.session_state.practice_questions = ''
+
+if 'show_answer' not in st.session_state:
+    st.session_state.show_answer = ''
+
 # Create three columns for the buttons
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3 = st.columns(3)
 
 # Place buttons in separate columns to arrange them horizontally
 with col1:
-    if st.button("🛠️Concept-Specific Guidance and Hints"):
+    if st.button("🛠️Concept Guidance"):
         st.session_state.active_feature = 'concept_guidance'
 with col2:
-    if st.button("📘Pesudo Answer Generation Ground"):
-        st.session_state.active_feature = 'Pesudo Answer Generation'
-with col3:
-    if st.button("🔗Concept Links and Related Resources"):
+    if st.button("🔗Concept Self-Study Links"):
         st.session_state.active_feature = 'concept_links'
-with col4:  # Add this under the existing buttons
-    if st.button("📊Error Tracking"):
+with col3:  # Add this under the existing buttons
+    if st.button("📊Concept Tracking"):
         st.session_state.active_feature = 'concept_tracking'
-with col5:
-    if st.button("🔍 Concept Explorer"):
-        st.session_state.active_feature = 'concept_explorer'
 
 if st.session_state.active_feature == 'concept_guidance':
     # Display content for Concept-Specific Guidance and Hints
@@ -345,22 +378,37 @@ if st.session_state.active_feature == 'concept_guidance':
     code_input = st.text_area("", height=200)
     hint_level = st.slider("Choose Hint Level (1: General, 5: Detailed)", 1, 5, 1)
 
+    st.write()
+
+    if st.session_state.practice_questions_indicator and st.session_state.show_answer_indicator:
+        st.markdown("***Here are your practice questions:***")
+        st.write(st.session_state.practice_questions)
+        st.markdown("***Here are answers of your practice questions***")
+        st.write(st.session_state.show_answer)
+        st.session_state.practice_questions_indicator = False
+        st.session_state.show_answer_indicator = False
+
+        if st.button("Exit Practice Questions"):
+            print("AAA")
+
+
+
     if st.button("Analyze Code"):
         if code_input.strip():
             with st.spinner("Analyzing your code..."):
-                try:
-                    hint = get_concept_specific_hint(code_input, hint_level)
+                
+                hint = get_concept_specific_hint(code_input, hint_level)
 
-                    # Update conversation history
-                    st.session_state.conversation_history.append({
-                        "user": f"Input Text:\n{code_input}\nHint Level: {hint_level}",
-                        "assistant": hint,
-                        "error_type": track_concepts_from_input(code_input)
-                    })
-                    error_description = track_concepts_from_input(code_input)
-                    st.write("Your input: ")
-                    st.text(code_input)
-                    st.markdown("**Hint:** " + hint)
+                # Update conversation history
+                st.session_state.conversation_history.append({
+                    "user": f"Input Text:\n{code_input}\nHint Level: {hint_level}",
+                    "assistant": hint,
+                    "error_type": track_concepts_from_input(code_input)
+                })
+                error_description = track_concepts_from_input(code_input)
+                st.write("Your input: ")
+                st.text(code_input)
+                st.markdown("**Hint:** " + hint)
 
                     # # Display updated conversation history
                     # st.write("### Conversation History")
@@ -369,74 +417,70 @@ if st.session_state.active_feature == 'concept_guidance':
                     #     st.markdown(f"**MentorAI:** {turn['assistant']}")
                     #     error_description = track_concepts_from_input(code_input)
                     
-                    # Track the error
-                    if 'tracked_errors' not in st.session_state:
-                        st.session_state.tracked_errors = []
-                    # Track frequency of this error
-                    if 'error_frequencies' not in st.session_state:
-                        st.session_state.error_frequencies = {}
+                # Track the error
+                if 'tracked_errors' not in st.session_state:
+                    st.session_state.tracked_errors = []
+                # Track frequency of this error
+                if 'error_frequencies' not in st.session_state:
+                    st.session_state.error_frequencies = {}
                     
-                    # Increment the frequency of the current error
-                    if error_description in st.session_state.error_frequencies:
-                        st.session_state.error_frequencies[error_description] += 1
-                    else:
-                        st.session_state.error_frequencies[error_description] = 1
+                # Increment the frequency of the current error
+                if error_description in st.session_state.error_frequencies:
+                    st.session_state.error_frequencies[error_description] += 1
+                else:
+                    st.session_state.error_frequencies[error_description] = 1
                     
-                    st.session_state.tracked_errors.append(error_description)
-                    # st.write("Hint: " + hint)
-                    # Notify if this error has been repeated multiple times
-                    if st.session_state.error_frequencies[error_description] >= 3:
-                        st.warning(f"You've engaged with this concept: {error_description} multiple times ({st.session_state.error_frequencies[error_description]} times). Consider reviewing additional resources to strengthen your understanding.")
-                        st.session_state.show_practice_popup = True
-                        st.session_state.round += 1
-                        # Add a button to trigger the pop-up
-                        # Check if the pop-up should be displayed
+                st.session_state.tracked_errors.append(error_description)
+                # st.write("Hint: " + hint)
+                # Notify if this error has been repeated multiple times
+                if st.session_state.error_frequencies[error_description] >= 3:
+                    st.warning(f"You've engaged with this concept: {error_description} multiple times ({st.session_state.error_frequencies[error_description]} times). Consider reviewing additional resources to strengthen your understanding.")
+                    st.session_state.show_practice_popup = True
+                    st.session_state.round += 1
+                    # Add a button to trigger the pop-up
+                    # Check if the pop-up should be displayed
 
-                    # Save updated data to S3
-                    update_user_errors_in_s3(
-                        BUCKET_NAME,
-                        st.session_state.student_code,
-                        {
-                            "tracked_errors": st.session_state.tracked_errors,
-                            "error_frequencies": st.session_state.error_frequencies
-                        }
-                    )
+                # Save updated data to S3
+                update_user_errors_in_s3(
+                    BUCKET_NAME,
+                    st.session_state.student_code,
+                    {
+                        "tracked_errors": st.session_state.tracked_errors,
+                        "error_frequencies": st.session_state.error_frequencies
+                    }
+                )
+                st.session_state.round += 1
+                if st.session_state.get("show_practice_popup", True) and st.session_state.round > 0:
+                    st.title("Practice Questions")
+                    st.markdown("### Practice Questions")
+                    st.write("Here are some practice questions based on your repeated concepts:")
 
-                    if st.session_state.get("show_practice_popup", True) and st.session_state.round > 0:
-                        st.title("Practice Questions")
-                        st.markdown("### Practice Questions")
-                        st.write("Here are some practice questions based on your repeated concepts:")
-
-                        # Generate practice questions
-                        with st.spinner("Creating practice questions..."):
-                            practice_questions = generate_practice_questions_artistic(error_description, code_input)
-                            st.write(practice_questions)
-
-                        # Add a button to close the pop-up
-                        if st.button("Close"):
-                            st.session_state.show_practice_popup = False  # Reset the flag
-                        st.stop()  # Prevent further execution
-
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
-        else:
-            st.error("Please paste a valid code snippet.")
-            st.session_state.round += 1
+                    # Generate practice questions
+                    with st.spinner("Creating practice questions..."):
+                        practice_questions = generate_practice_questions_artistic(error_description, code_input)
+                        st.write(practice_questions)
+                        answers = get_practice_questions_answers(practice_questions)
+                        st.session_state.show_answer_indicator = True
+                        st.session_state.practice_questions_indicator = True
+                        st.session_state.show_answer = answers
+                        st.session_state.practice_questions = practice_questions
 
 
-elif st.session_state.active_feature == 'Pesudo Answer Generation':
-    # Display content for Pattern Detection for Repeated Mistakes
-    st.subheader("Pseudo answer generation for students' programming question")
-    st.write("""
-    This feature provides student a start place on their programming problem.
-    """)
-    user_id = st.text_input("Enter your user ID:")
-    code_input = st.text_area("Paste your code snippet here:", height=200)
+                    
+                    show_answers = st.selectbox(
+                            "Would you like to view the answers?",
+                            ["No", "Yes"],
+                            index=0
+                        )
 
-    if st.button("Get Pesudo Answer"):
-        result = generate_pseudocode_outline(code_input)
-        st.write(result)
 
+                    # Add a button to close the pop-up
+                    if st.button("Close"):
+                        st.session_state.show_practice_popup = False  # Reset the flag
+                    st.stop()  # Prevent further execution
+    
+                    # Add a select box to control the display of answers
+                    
 elif st.session_state.active_feature == 'concept_links':
     # Display content for Concept Links and Related Resources
     st.subheader("Concept Links and Related Resources")
@@ -508,32 +552,6 @@ elif st.session_state.active_feature == 'concept_tracking':
             {"tracked_concepts": [], "concept_frequencies": {}}
         )
         st.success("Concept history cleared.")
-
-
-elif st.session_state.active_feature == 'concept_explorer':
-    st.subheader("🔍 Java Concept Explorer")
-    st.write("""
-    This feature helps you discover Java-related programming concepts based on your question.
-    Input your programming question to see what topics you might want to explore further!
-    """)
-    
-    question = st.text_area("Enter your Java-related programming question:", height=100)
-    
-    if st.button("Explore Related Concepts"):
-        if question.strip():
-            with st.spinner("Finding related Java concepts..."):
-                try:
-                    concepts = get_concept_suggestions(question)
-                    st.write(concepts)
-                    
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
-        else:
-            st.error("Please enter a question first.")
-    
-
-
-
 
 else:
     # Default content when no button is clicked
