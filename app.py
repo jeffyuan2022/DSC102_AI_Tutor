@@ -369,6 +369,12 @@ if 'practice_questions' not in st.session_state:
 if 'show_answer' not in st.session_state:
     st.session_state.show_answer = ''
 
+if 'tracked_concepts' not in st.session_state:
+    st.session_state.tracked_concepts = ''
+
+if 'concept_frequency' not in st.session_state:
+    st.session_state.concept_frequencies = 0
+
 # Create three columns for the buttons
 col1, col2, col3 = st.columns(3)
 
@@ -401,7 +407,6 @@ if st.session_state.active_feature == 'concept_guidance':
     code_input = st.text_area("", height=200)
     hint_level = st.slider("Choose Hint Level (1: General, 5: Detailed)", 1, 5, 1)
 
-    st.write()
 
     if st.session_state.practice_questions_indicator and st.session_state.show_answer_indicator:
         st.markdown("***Here are your practice questions:***")
@@ -473,7 +478,7 @@ if st.session_state.active_feature == 'concept_guidance':
                     }
                 )
                 st.session_state.round += 1
-                if st.session_state.get("show_practice_popup", True) and st.session_state.round > 0:
+                if st.session_state.get("show_practice_popup", True) and st.session_state.round > 0 and st.session_state.error_frequencies[error_description] >= 3:
                     st.title("Practice Questions")
                     st.markdown("### Practice Questions")
                     st.write("Here are some practice questions based on your repeated concepts:")
@@ -512,6 +517,10 @@ elif st.session_state.active_feature == 'concept_links':
     Each topic includes links to external tutorials or resources, and you can track which concepts you want to revisit.
     """)
 
+    tracked_concepts, concept_frequencies = load_user_errors_from_s3(BUCKET_NAME, st.session_state.student_code)
+    st.session_state.tracked_concepts = tracked_concepts
+    st.session_state.concept_frequencies = concept_frequencies
+
     # Load tracked concepts and their frequencies
     if st.session_state.tracked_concepts and st.session_state.concept_frequencies:
         # Combine concepts with their frequencies for display
@@ -547,37 +556,4 @@ elif st.session_state.active_feature == 'concept_tracking':
     """)
 
     # Load concepts and frequencies from S3 to ensure the latest data
-    tracked_concepts, concept_frequencies = load_user_errors_from_s3(BUCKET_NAME, st.session_state.student_code)
-    st.session_state.tracked_concepts = tracked_concepts
-    st.session_state.concept_frequencies = concept_frequencies
-
-    # Display summary of concept frequencies
-    if st.session_state.concept_frequencies:
-        st.write("### Concept Engagement Summary:")
-        for idx, (concept, count) in enumerate(st.session_state.concept_frequencies.items(), start=1):
-            st.write(f"**{idx}. {concept}: {count} occurrences**")
-
-        # Visualize concept engagement if a visualization function is available
-        visualize_error_types_donut(st.session_state.concept_frequencies)
-    else:
-        st.write("No concepts tracked yet. Use the **Concept Exploration** feature to start learning.")
-
-    # Optional: Clear concept history for the current user
-    if st.button("Clear Concept History"):
-        # Reset concepts in session state
-        st.session_state.tracked_concepts = []
-        st.session_state.concept_frequencies = {}
-
-        # Update S3 to clear the file
-        update_user_errors_in_s3(
-            BUCKET_NAME,
-            st.session_state.student_code,
-            {"tracked_concepts": [], "concept_frequencies": {}}
-        )
-        st.success("Concept history cleared.")
-
-else:
-    # Default content when no button is clicked
-    st.write("""
-    Welcome to MentorAI! Click any of the buttons above to learn more about the features of this application.
-    """)
+    tracked_concepts, concept_frequencies = load_user_errors_from_s3(BUCKET_NAME, st.session_stat
