@@ -35,20 +35,32 @@ def save_user_errors(student_code, data):
     with open(file_name, "w") as file:
         json.dump(data, file)
 
-def get_error_specific_hint(code, hint_level):
+def get_concept_specific_hint(input_text, hint_level):
     """
-    Uses OpenAI API to analyze code errors and provide hints based on the level.
+    Uses OpenAI API to analyze the user's input and provide hints based on the level.
+    Targets DSC102 concepts using the content from 'dsc102.txt'.
     """
+    # Load DSC102 course content as the system prompt
+    try:
+        with open('dsc102.txt', 'r', encoding='utf-8') as file:
+            dsc102_system_prompt = file.read()
+    except FileNotFoundError:
+        raise FileNotFoundError("Error: 'dsc102.txt' not found. Please ensure the file is in the correct directory.")
+
+    # Define hint levels
     hint_descriptions = {
         1: "Provide a very general and high-level hint to guide the user.",
         2: "Provide a slightly specific hint that gives some direction but remains general.",
-        3: "Provide a moderately detailed hint, focusing on the error or problem area.",
-        4: "Provide a detailed hint, explaining the error and how to resolve it.",
-        5: "Provide a comprehensive and detailed explanation, almost solving the issue."
+        3: "Provide a moderately detailed hint, focusing on the concept area.",
+        4: "Provide a detailed hint, explaining the concept with examples or applications.",
+        5: "Provide an in-depth exploration, including technical details and references to the course content."
     }
 
+    # Construct the user prompt for the OpenAI API
     prompt = f"""
-    Analyze the following code and provide a hint based on the user's selected level of guidance. 
+    Analyze the following input and provide a hint related to the DSC102 course based on the user's selected level of guidance. 
+    Use the content from the DSC102 course as a reference.
+    
     The levels are defined as follows:
     Level 1: {hint_descriptions[1]}
     Level 2: {hint_descriptions[2]}
@@ -58,44 +70,35 @@ def get_error_specific_hint(code, hint_level):
     
     Hint Level: {hint_level}
     
-    Code:
+    Input Text:
     ```
-    {code}
+    {input_text}
     ```
     
     Provide a hint at Level {hint_level}.
     """
 
+    # Call the OpenAI API with the system and user prompts
     completion = openai.chat.completions.create(
         model="gpt-4o",
         messages=[
+            {"role": "system", "content": dsc102_system_prompt},
             {"role": "user", "content": prompt}
         ]
     )
-    return completion.choices[0].message.content
 
-# def get_related_concepts(code):
-#     """
-#     Suggest related concepts based on the student's code.
-#     """
-#     completion = openai.chat.completions.create(
-#         model="gpt-4o",
-#         messages=[
-#             {"role": "user", "content": f"Identify programming concepts related to this code snippet:\n\n{code}"}
-#         ]
-#     )
-#     return completion.choices[0].message.content
+    # Extract and return the hint from the completion
+    return completion.choices[0].message.content.strip()
 
-################################################### Yiheng Testing ###################################################
 def search_concept_links(concept):
     """
-    Search for study resources related to a concept using SerpApi.
+    Search for course-specific study resources related to a concept using SerpApi.
     """
     api_key = "9809cdc19c68cb1f3379fca7d5c227eb52f5e8cd4e9c70ae9bfb02ed31792bf8"
     search_url = "https://serpapi.com/search.json"
     
     params = {
-        "q": concept,  # Search query
+        "q": concept,  # Focus on course-specific resources
         "hl": "en",    # Language
         "num": 5,      # Number of results
         "api_key": api_key
@@ -108,7 +111,6 @@ def search_concept_links(concept):
         return links
     else:
         return ["Unable to fetch resources. Please try again later."]
-################################################### Yiheng Testing ###################################################
 
 def generate_pseudocode_outline(code):
     """
@@ -122,55 +124,87 @@ def generate_pseudocode_outline(code):
     )
     return completion.choices[0].message.content
 
-def error_tracking(code):
-
-# Build the conversation history to provide context to MentorAI
+def track_concepts_from_input(input_text):
+    """
+    Matches the user's input to DSC102 concepts.
+    """
+    # Build the conversation history to provide context for MentorAI
     conversation_history = ""
     for turn in st.session_state.conversation_history:
-        conversation_history += f"User's Code: {turn['user']}\nError Type: {turn['error_type']}\n"
+        conversation_history += f"User's Input: {turn['user']}\nConcept Type: {turn['error_type']}\n"
 
-    # Create the prompt for the error categorization
+    # Define DSC102-specific concepts
+    dsc102_topics = [
+        "Hardware and Software Basics", 
+        "Data Representation and Abstraction", 
+        "Processors and Memory Hierarchy", 
+        "Operating Systems and Virtualization", 
+        "Data Structures", 
+        "File Systems and Databases", 
+        "Distributed Computing and Parallelism", 
+        "Cloud Computing and Scalability", 
+        "Feature Engineering in ML"
+    ]
+
+    # Create the prompt for concept categorization
     prompt = f"""
-    Here is the student's current code: {code}
+    Here is the user's current input: {input_text}
     
-    Here are all previous questions the user has asked and the corresponding error types:
+    Here are all previous inputs the user has provided and the corresponding concept types:
     {conversation_history}
 
-    If you think the current question's error type is similar to that of a previous one, please attribute the current input's error type to that of the previous one.
+    If you think the current input's concept type is similar to that of a previous one, 
+    please attribute the current input's concept type to that of the previous one.
 
-    Otherwise, please attribute the current code to one of the following categories:
-    [Algorithm, Data Structure, String Manipulation, Array and Matrix operation, Mathematical and Logical, Recursion and Backtracking, Searching and Sorting, Dynamic Programming, System Design, Object-Oriented Programming, Database and SQL, Real-World Simulation, Problem-Solving with APIs, Optimization].
+    Otherwise, please attribute the current input to one of the following DSC102 course topics:
+    {', '.join(dsc102_topics)}.
 
     Output your answer in this format: [[your_answer]]. You MUST output one category from the list.
     """
 
+    # Use OpenAI to determine the concept type
     completion = openai.chat.completions.create(
-        model = "gpt-4o",
+        model="gpt-4o",
         messages=[
             {"role": "user", "content": prompt}
         ]
     )
-    # Remove brackets [[ ]] from the output
-    error_category = completion.choices[0].message.content.strip()
-    if error_category.startswith("[[") and error_category.endswith("]]"):
-        error_category = error_category[2:-2]  # Remove the outer [[ ]]
-    return error_category
 
-def generate_practice_questions_artistic(error_type, code):
+    # Remove brackets [[ ]] from the output
+    concept_category = completion.choices[0].message.content.strip()
+    if concept_category.startswith("[[") and concept_category.endswith("]]"):
+        concept_category = concept_category[2:-2]  # Remove the outer [[ ]]
+
+    return concept_category
+
+def generate_practice_questions_artistic(concept, input_text):
     """
-    Generate 2-3 artistic and engaging practice questions based on the error type using the LLM.
+    Generate 2-3 practice questions based on the DSC102 concept.
     """
     try:
-        prompt = f"""You are an exercise programming question designer, and the student is struggling with this type of question{error_type}, and here is the code student provided, which contains the error: {code}, Please just output the question you design to help students practice this knowledge. Do not output any other things. Output as a .txt file format.
+        # Define the prompt for generating practice questions
+        prompt = f"""
+        You are an educational content designer for the DSC102 course.
+        The student is studying this topic: {concept}.
+        Here is the student's input or area of focus: {input_text}.
+        
+        Design 2-3 engaging and challenging practice questions to help the student deepen their understanding of this topic.
+        Ensure the questions are aligned with the DSC102 course content and emphasize conceptual clarity and application.
+        Provide only the questions as output, without any additional text or explanations.
         """
+        
+        # Use OpenAI's API to generate the practice questions
         completion = openai.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "user", "content": prompt}
             ]
         )
+        
+        # Extract the response
         response = completion.choices[0].message.content.strip()
         return response
+    
     except Exception as e:
         return [f"An error occurred while generating questions: {e}"]
 
@@ -242,7 +276,7 @@ st.title("MentorAI 🤖")
 error_description = ""
 hint = ""
 
-# Prompt the user for their student code
+# Prompt the user for their Student ID
 if 'student_code' not in st.session_state:
     st.session_state.student_code = None
 
@@ -253,7 +287,7 @@ if "conversation_history" not in st.session_state:
     st.session_state.conversation_history = []
 
 if not st.session_state.student_code:
-    st.session_state.student_code = st.text_input("Enter your student code:", "")
+    st.session_state.student_code = st.text_input("Enter your student ID:", "")
     
     if st.session_state.student_code:
         # Load errors and frequencies for this user
@@ -263,7 +297,7 @@ if not st.session_state.student_code:
         st.session_state.error_frequencies = error_frequencies
         st.success(f"Welcome, student {st.session_state.student_code}! Your error history is loaded.")
     else:
-        st.stop()  # Stop the app until a valid student code is entered
+        st.stop()  # Stop the app until a valid Student ID is entered
 
 
 
@@ -278,8 +312,8 @@ col1, col2, col3, col4, col5 = st.columns(5)
 
 # Place buttons in separate columns to arrange them horizontally
 with col1:
-    if st.button("🛠️Error-Specific Guidance and Hints"):
-        st.session_state.active_feature = 'error_guidance'
+    if st.button("🛠️Concept-Specific Guidance and Hints"):
+        st.session_state.active_feature = 'concept_guidance'
 with col2:
     if st.button("📘Pesudo Answer Generation Ground"):
         st.session_state.active_feature = 'Pesudo Answer Generation'
@@ -288,20 +322,17 @@ with col3:
         st.session_state.active_feature = 'concept_links'
 with col4:  # Add this under the existing buttons
     if st.button("📊Error Tracking"):
-        st.session_state.active_feature = 'error_tracking'
+        st.session_state.active_feature = 'concept_tracking'
 with col5:
     if st.button("🔍 Concept Explorer"):
         st.session_state.active_feature = 'concept_explorer'
-# error_description = ""
-# Define behavior based on the button clicked
-# Define behavior based on the button clicked
-if st.session_state.active_feature == 'error_guidance':
-    # Display content for Error-Specific Guidance and Hints
-    st.subheader("Error-Specific Guidance and Hints")
+
+if st.session_state.active_feature == 'concept_guidance':
+    # Display content for Concept-Specific Guidance and Hints
+    st.subheader("Concept-Specific Guidance and Hints")
     st.write("""
-    This feature allows students to input their code and receive hints based on the specific errors found.
-    The hints start with general guidance and become more specific as needed, helping students solve issues
-    on their own while learning from the process.
+    This feature allows students to input questions or topics related to the DSC102 course and receive guidance based on the specific concepts involved.
+    The hints start with general information and become more detailed as needed, helping students deepen their understanding of the concepts.
     """)
 
     # Display conversation history
@@ -318,17 +349,17 @@ if st.session_state.active_feature == 'error_guidance':
         if code_input.strip():
             with st.spinner("Analyzing your code..."):
                 try:
-                    hint = get_error_specific_hint(code_input, hint_level)
+                    hint = get_concept_specific_hint(code_input, hint_level)
 
                     # Update conversation history
                     st.session_state.conversation_history.append({
-                        "user": f"Code Input:\n{code_input}\nHint Level: {hint_level}",
+                        "user": f"Input Text:\n{code_input}\nHint Level: {hint_level}",
                         "assistant": hint,
-                        "error_type": error_tracking(code_input)
+                        "error_type": track_concepts_from_input(code_input)
                     })
-                    error_description = error_tracking(code_input)
-                    st.write("Your code: ")
-                    st.code(code_input)
+                    error_description = track_concepts_from_input(code_input)
+                    st.write("Your input: ")
+                    st.text(code_input)
                     st.markdown("**Hint:** " + hint)
 
                     # # Display updated conversation history
@@ -336,7 +367,7 @@ if st.session_state.active_feature == 'error_guidance':
                     # for turn in st.session_state.conversation_history:
                     #     st.markdown(f"**You:** {turn['user']}")
                     #     st.markdown(f"**MentorAI:** {turn['assistant']}")
-                    #     error_description = error_tracking(code_input)
+                    #     error_description = track_concepts_from_input(code_input)
                     
                     # Track the error
                     if 'tracked_errors' not in st.session_state:
@@ -355,8 +386,7 @@ if st.session_state.active_feature == 'error_guidance':
                     # st.write("Hint: " + hint)
                     # Notify if this error has been repeated multiple times
                     if st.session_state.error_frequencies[error_description] >= 3:
-                        st.warning(f"You've encountered this type of error: {error_description} multiple times ({st.session_state.error_frequencies[error_description]} times). Consider revisiting this topic to strengthen your understanding.")
-                        # print("hey")
+                        st.warning(f"You've engaged with this concept: {error_description} multiple times ({st.session_state.error_frequencies[error_description]} times). Consider reviewing additional resources to strengthen your understanding.")
                         st.session_state.show_practice_popup = True
                         st.session_state.round += 1
                         # Add a button to trigger the pop-up
@@ -375,7 +405,7 @@ if st.session_state.active_feature == 'error_guidance':
                     if st.session_state.get("show_practice_popup", True) and st.session_state.round > 0:
                         st.title("Practice Questions")
                         st.markdown("### Practice Questions")
-                        st.write("Here are some practice questions based on your repeated errors:")
+                        st.write("Here are some practice questions based on your repeated concepts:")
 
                         # Generate practice questions
                         with st.spinner("Creating practice questions..."):
@@ -407,102 +437,91 @@ elif st.session_state.active_feature == 'Pesudo Answer Generation':
         result = generate_pseudocode_outline(code_input)
         st.write(result)
 
-################################################### Yiheng Testing ###################################################
-# elif st.session_state.active_feature == 'concept_links':
-#     # Display content for Concept Links and Related Resources
-#     st.subheader("Concept Links and Related Resources")
-#     st.write("""
-#     Each hint includes links to external resources that help explain foundational programming concepts.
-#     For example, if you're struggling with recursion, you will receive a link to a tutorial on base cases and recursion.
-#     """)
-#     code_input = st.text_area("Paste your code snippet here:", height=200)
-
-#     if st.button("Get Related Concepts"):
-#         related_concept = get_related_concepts(code_input)
-#         st.write("Related Concepts: " + related_concept)
-
 elif st.session_state.active_feature == 'concept_links':
     # Display content for Concept Links and Related Resources
     st.subheader("Concept Links and Related Resources")
     st.write("""
-    Each hint includes links to external resources that help explain foundational programming concepts.
-    For example, if you're struggling with recursion, you will receive a link to a tutorial on base cases and recursion.
+    Explore topics from the DSC102 course and find related resources to deepen your understanding.
+    Each topic includes links to external tutorials or resources, and you can track which concepts you want to revisit.
     """)
 
-    # Load errors and frequencies
-    if st.session_state.tracked_errors and st.session_state.error_frequencies:
+    # Load tracked concepts and their frequencies
+    if st.session_state.tracked_concepts and st.session_state.concept_frequencies:
         # Combine concepts with their frequencies for display
         concept_options = [
-            f"{concept} (Errors: {st.session_state.error_frequencies.get(concept, 0)})"
-            for concept in set(st.session_state.tracked_errors)
+            f"{concept} (Occurrences: {st.session_state.concept_frequencies.get(concept, 0)})"
+            for concept in set(st.session_state.tracked_concepts)
         ]
-        st.write("Tracked Errors (Select a concept to explore):")
+        st.write("Tracked Concepts (Select a topic to explore):")
         selected_option = st.selectbox("Choose a concept", concept_options)
         
         # Extract the concept name from the selected option
         concept = selected_option.split(" (")[0]
     else:
-        st.write("No errors tracked for this user.")
+        st.write("No concepts tracked yet. Start exploring topics to build your understanding.")
 
+    # Provide study links for the selected concept
     if "concept" in locals() and st.button("Get Study Links"):
         st.write(f"Fetching study links for concept: **{concept}**")
         links = search_concept_links(concept)
-        st.write("### Study Links")
-        for link in links:
-            st.write(f"- {link}")
-################################################### Yiheng Testing ###################################################
+        st.write("### Study Resources")
+        if links:
+            for link in links:
+                st.write(f"- {link}")
+        else:
+            st.write("No resources found for this concept. Try a different topic or check back later.")
 
-elif st.session_state.active_feature == 'error_tracking':
-    st.subheader("📊 Error Tracking")
-    st.write(f"Student Code: {st.session_state.student_code}")
+elif st.session_state.active_feature == 'concept_tracking':
+    st.subheader("📊 DSC102 Course Concept Tracking")
+    st.write(f"Student ID: {st.session_state.student_code}")
     st.write("""
-    This feature tracks all errors detected during the Error-Specific Guidance sessions.
-    Below is a summary of your errors categorized by type.
+    This feature tracks all concepts explored during your learning sessions.
+    Below is a summary of the concepts you've engaged with, categorized by DSC102 topics.
     """)
 
-    # Load errors and frequencies from S3 to ensure the latest data
-    tracked_errors, error_frequencies = load_user_errors_from_s3(BUCKET_NAME, st.session_state.student_code)
-    st.session_state.tracked_errors = tracked_errors
-    st.session_state.error_frequencies = error_frequencies
+    # Load concepts and frequencies from S3 to ensure the latest data
+    tracked_concepts, concept_frequencies = load_user_errors_from_s3(BUCKET_NAME, st.session_state.student_code)
+    st.session_state.tracked_concepts = tracked_concepts
+    st.session_state.concept_frequencies = concept_frequencies
 
-    # Display summary of error frequencies
-    if st.session_state.error_frequencies:
-        st.write("### Error Summary:")
-        for idx, (error_type, count) in enumerate(st.session_state.error_frequencies.items(), start=1):
-            st.write(f"**{idx}. {error_type}: {count}**")
+    # Display summary of concept frequencies
+    if st.session_state.concept_frequencies:
+        st.write("### Concept Engagement Summary:")
+        for idx, (concept, count) in enumerate(st.session_state.concept_frequencies.items(), start=1):
+            st.write(f"**{idx}. {concept}: {count} occurrences**")
 
-        # Visualize errors if a visualization function is available
-        visualize_error_types_donut(st.session_state.error_frequencies)
+        # Visualize concept engagement if a visualization function is available
+        visualize_error_types_donut(st.session_state.concept_frequencies)
     else:
-        st.write("No errors tracked yet. Use the **Error-Specific Guidance** feature to analyze code.")
+        st.write("No concepts tracked yet. Use the **Concept Exploration** feature to start learning.")
 
-    # Optional: Clear error history for the current user
-    if st.button("Clear Error History"):
-        # Reset errors in session state
-        st.session_state.tracked_errors = []
-        st.session_state.error_frequencies = {}
+    # Optional: Clear concept history for the current user
+    if st.button("Clear Concept History"):
+        # Reset concepts in session state
+        st.session_state.tracked_concepts = []
+        st.session_state.concept_frequencies = {}
 
         # Update S3 to clear the file
         update_user_errors_in_s3(
             BUCKET_NAME,
             st.session_state.student_code,
-            {"tracked_errors": [], "error_frequencies": {}}
+            {"tracked_concepts": [], "concept_frequencies": {}}
         )
-        st.success("Error history cleared.")
+        st.success("Concept history cleared.")
 
 
 elif st.session_state.active_feature == 'concept_explorer':
-    st.subheader("🔍 Concept Explorer")
+    st.subheader("🔍 Java Concept Explorer")
     st.write("""
-    This feature helps you discover related programming concepts based on your question.
-    Input your programming question to see what other topics you might want to explore!
+    This feature helps you discover Java-related programming concepts based on your question.
+    Input your programming question to see what topics you might want to explore further!
     """)
     
-    question = st.text_area("Enter your programming question:", height=100)
+    question = st.text_area("Enter your Java-related programming question:", height=100)
     
     if st.button("Explore Related Concepts"):
         if question.strip():
-            with st.spinner("Finding related concepts..."):
+            with st.spinner("Finding related Java concepts..."):
                 try:
                     concepts = get_concept_suggestions(question)
                     st.write(concepts)
