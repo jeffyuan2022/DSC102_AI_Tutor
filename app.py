@@ -588,5 +588,5 @@ elif st.session_state.active_feature == 'concept_tracking':
 else:
     # Default content when no button is clicked
     st.write("""
-    Welcome to MentorAI! Click any of the buttons above to learn more about the features of this application.
+    Welcome to DSC102 AI Tutor! Click any of the buttons above to learn more about the features of this application.
     """)
