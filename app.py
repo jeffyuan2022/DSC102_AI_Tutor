@@ -298,7 +298,7 @@ def load_user_errors_from_s3(bucket_name, student_code):
         return [], {}  # Default empty data if file doesn't exist
 
 
-st.title("MentorAI 🤖")
+st.title("DSC102 AI Tutor 🤖")
 
 st.markdown(
     """
