@@ -376,17 +376,17 @@ if 'concept_frequency' not in st.session_state:
     st.session_state.concept_frequencies = 0
 
 # Create three columns for the buttons
-col1, col2, col3 = st.columns(3)
+col1, cole1, col2, cole2, col3 = st.columns([1, 0.5, 1, 0.5, 1])
 
 # Place buttons in separate columns to arrange them horizontally
 with col1:
-    if st.button("🛠️Concept Guidance"):
+    if st.button("🛠️ Concept Guidance"):
         st.session_state.active_feature = 'concept_guidance'
 with col2:
-    if st.button("🔗Concept Self-Study Links"):
+    if st.button("🔗 Concept Self-Study Links"):
         st.session_state.active_feature = 'concept_links'
 with col3:  # Add this under the existing buttons
-    if st.button("📊Concept Tracking"):
+    if st.button("📊 Concept Self tracking"):
         st.session_state.active_feature = 'concept_tracking'
 
 if st.session_state.active_feature == 'concept_guidance':
