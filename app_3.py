@@ -289,10 +289,12 @@ if "student_id" not in st.session_state:
     if student_id:
         st.session_state["student_id"] = student_id
         st.session_state["student_data"] = load_user_errors_from_s3(BUCKET_NAME, student_id)
+        st.session_state["graded_2"] = load_user_errors_from_s3(BUCKET_NAME, student_id + "right_wrong_history")
         st.rerun()  # Reload the app after ID is entered
 else:
     student_id = st.session_state["student_id"]
     student_data = st.session_state["student_data"]
+    graded_2 = st.session_state["graded_2"]
 
     st.sidebar.success(f"Logged in as: {student_id}")
 
@@ -307,6 +309,9 @@ else:
             for key, value in st.session_state.student_data.items():
                 holder[key] = value
             st.session_state.student_data = holder
+        if f"graded_2_" not in st.session_state:
+            holder_2 = {}
+            st.session_state.graded_2 = load_user_errors_from_s3(BUCKET_NAME, student_id + "right_wrong_history")
         # # Load student's data
         # student_data = load_student_data(student_id)
 
@@ -325,9 +330,6 @@ else:
 
     if 'error_tracking' not in st.session_state:
         st.session_state.error_tracking = {}
-    
-    if 'graded_2' not in st.session_state:
-        st.session_state.graded_2 = []
 
     # # Initialize student_data in session state if not already initialized
     # if f"student_data_{student_id}" not in st.session_state:
