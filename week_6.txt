@@ -1,0 +1,59 @@
+Data as File: Other Common Formats
+Machine Perception data layer on tensors and/or time-series Myriad binary formats, typically with (lossy) compression, e.g., WAV for audio, MP4 for video, etc.
+Text File (aka plaintext): Human-readable ASCII characters
+Docs/Multimodal File: Myriad app-specific rich binary formats
+Virtualization of GRAM with Pages
+Page: An abstraction of fixed size chunks of memory/storage
+Makes it easier to virtualize and manage DRAM
+Page Frame: Virtual slot in DRAM to hold a page’s content
+Page size is usually an OS configuration parameter
+E.g., 4KB to 16KB
+OS Memory Management has mechanisms to:
+Identify pages uniquely (page frame 0 for OS)
+Read/write page from/to disk when requested by a process Apportioning of DRAM: Elements A process’s Address Space:
+Slice of virtualize DRAM assigned to it alone! OS “translates” DRAM vs disk address Page Replacement Policy:
+When DRAM fills up, which cached page to evict? Many policies in OS literature Memory Leaks:
+Process forgot to “free” pages used a while ago
+Wastes DRAM and slows down system
+Garbage Collection:
+Some PL implementations can auto-reclaim some wasted memory
+Storing Data In Memory
+Any data structure in memory is overlaid on pages
+Process can ask OS for more memory in System Call API If OS denies, process may crash Apache Arrow:
+Emerging standard for columnar in-memory data layout Compatible with Pandas, (Py)Spark, Parquet, etc.
+Persistent Data Storage
+Hard Disk, CD, SSDs
+SSDs has a key latency dichotomy for random vs. sequential data Volatile Memory: A data storage device that needs power/electricity to store bits; e.g., DRAM, CPU caches (SRAM)
+Persistence: Program state/data is available intact even after process finishes
+Non-Volatile or Persistent memory/storage: A data storage device that retains bits intact after power cycling
+E.g., all levels below DRAM in memory hierarchy “Persistent Memory (PMEM)”: Marketing term for large DRAM that is backed up by battery power!
+Non-Volatile RAM (NVRAM): Popular term for DRAM-like device that is genuinely non-volatile (no battery)
+Note: PMEM and NVRAM are typically used in high-performance servers and storage systems where fast, reliable access to data is critical.
+Disk and Data Organization on Disk
+Disk: Aka secondary storage; likely holds the vast majority of the world’s day-to-day business-critical data!
+Data storage/retrieval units: disk blocks or pages
+Unlike RAM, different disk pages have different retrieval times based on location:
+Need to optimize layout of data on disk pages
+Orders of magnitude performance gaps possible
+Disk space is organized into files
+Files are made up of disk pages aka blocks(basic unit) Typical disk block/page size: 4KB or 8KB:
+Basic unit of reads/writes for a disk
+OS/RAM page is not the same as disk page!
+Typically, [OS/RAM page size] = [Disk page size] but not always; disk page can be a multiple, e.g., 1MB
+File data (de-)allocated in increments of disk pages
+Magnetic Hard Disks
+Key Principle: Sequential vs. Random Access Dichotomy Accessing disk pages in sequential order gives higher throughput Random reads/writes are OOM slower!
+Need to carefully lay out data pages on disk, not the case for DRAM Abstracted away by data systems: Dask, Spark, RDBMSs, etc.
+Flash SSD vs. Magnetic Hard Disks
+Random reads/writes are not much worse
+Different locality of reference for data/file layout
+But still block-addressable like HDDs
+Data access latency: 100x faster! (Note: Access ~ Lookup)
+Data transfer throughput: Also 10-100x higher (Note: Access ~ Read/Write
+Parallel read/writes more feasible Cost per GB is 5-15x higher!
+Read-write impact asymmetry; much lower lifetimes
+NVRAM vs. Magnetic Hard Disks NVRAM is like a non-volatile form of DRAM, but with similar capacity as SSDs
+Random R/W with less to no SSD-style wear and tear
+Byte-addressability (not blocks like SSDs/HDDs) Spatial locality of reference like DRAM; radical change!
+Latency, throughput, parallelism, etc. similar to DRAM
+Alas, limited to HPC and enterprise environments

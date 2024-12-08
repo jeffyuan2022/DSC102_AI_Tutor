@@ -1,0 +1,124 @@
+❖ Evolution of data-generating process/application ❖ Perform model selection, i.e., convert prepared ML-ready data to prediction function(s) and/or other analytics outputs
+Data scientist / ML engineer must steer 3 key activities that
+
+invoke ML training and inference as sub-routines:
+1. Feature Engineering (FE): Appropriate signals representation for domain of prediction function.
+2. Algorithm/Architecture Selection (AS): Choice of prediction functions class (incl. artificial neural networks (ANN) architecture).
+3. Hyper-parameter Tuning (HT): Model improvement
+(accuracy, etc.) by configuring ML “knobs”
+Model Selection Process
+❖ Model selection is usually an iterative exploratory process with human making decisions on FE, AS, and/or HT
+❖ Increasingly, automation of some or all parts possible: AutoML ❖ Decisions on FE, AS, HT guided by many constraints/metrics: prediction accuracy, data/feature types, interpretability, tool availability, scalability, runtimes, fairness, legal issues, etc. ❖ Decisions are typically application-specific and dataset-specific; recall Pareto surfaces and tradeoffs
+Feature Engineering
+❖ Converting prepared data into a feature vector representation for
+ML training and inference
+❖ Aka feature extraction, representation extraction, etc.
+❖ Umbrella term for many tasks dep. on type of ML model trained:
+1. Recoding and value conversions
+2. Joins and/or aggregates
+3. Feature interactions
+4. Feature selection
+5. Dimensionality reduction
+6. Temporal feature extraction
+7. Textual feature extraction and embeddings
+8. Learned feature extraction in deep learning 1. Recoding and value conversions
+❖ Common on relational/tabular data
+❖ Typically needs some global column stats + code to reconvert each tuple (example’s feature values) Example:
+Decision trees can use categorical features directly but GLMs support only numeric features; need numerical vector such as one-hot Encoded, weight of evidence / target encoding, integer encoding, embedding (via additional DL model), etc Example:
+GLMs and ANNs need standardization (either mean/stdev or min/max based) and decorrelation
+Scaling global stats: How to scale mean/stdev/max/min?
+Reconversion: Tuple-level function to modify number using stats. How to scale?
+Example:
+Some models like Bayesian Networks or Markov Logic Networks benefit from (or even need) binning/discretization of numerics Scaling global stats: How to scale histogram computations?
+Reconversion: Tuple-level function to convert number to bin ID
+2. Joins and Aggregates
+❖ Common on relational/tabular data
+❖ Most real-world relational datasets are multi-table; require key-foreign key joins, aggregation-and-key-key-joins, etc.
+3. Polynomials and Feature Interactions
+❖ Sometimes used on relational/tabular data, especially for high-bias models like GLMs
+❖ Pairwise is common; ternary is not unheard of
+❖ No global stats, just a tuple-level function
+❖ Popularity of this has reduced due to GBMs popularity for tabular data, which encode nonlinearities and interactions as part of the learning process.
+4. Feature Selection
+❖ Often used on high dimensional relational/tabular data
+❖ Basic Idea: Instead of using whole feature set, use a subset
+❖ Formulated as a discrete optimization problem
+❖ NP-Hard in #features in general
+❖ Many heuristics exist in ML/data mining; typically rely on some information theoretic criteria
+❖ Typically scaled as “outer loops” over training/inference
+❖ Some ML users also prefer human-in-the-loop approach
+5. Dimensionality Reduction
+❖ Often used on relational/structured/tabular data
+❖ Basic Idea: Transforms features to a different latent space
+❖ Examples: Principal Component Analysis (PCA), Singular Value Decomposition (SVD), Linear Discriminant Analysis (LDA), Matrix factorization
+❖ Feat. sel. preserves semantics of each feature but dim. red. typically does not—combines features in “nonsensical” ways
+❖ Scaling this is non-trivial! Similar to scaling individual ML training algorithms (later)
+6. Temporal Feature Extraction
+❖ Many relational/tabular data have time/date
+❖ Per-example reconversion to extract numerics/categoricals
+❖ Sometimes global stats needed to calibrate time
+❖ Complex temporal features studied in time series mining Reconversion: Tuple-level function (many-to-one) to extract numbers/categories 7. Textual Feature Extraction
+❖ Many relational/tabular data have text columns; in NLP, whole example is often just text
+❖ Most classifiers cannot process text/strings directly
+❖ Extracting numerics from text studied in text mining Example:
+Bag-of-words features: count number of times each word in a given vocabulary arises; need to know vocabulary first Scaling global stats: How to get vocabulary?
+Reconversion: Tuple-level function to count words; look up index ❖ Knowledge Base-based: Domain-specific knowledge bases like entity dictionaries (e.g., celebrity or chemical names) help extract domain-specific features ❖ Embedding-based:
+❖ Numeric vector for a text token; popular in NLP ❖ Offline training of function from string to numeric vector in self-supervised way on large text corpus (e.g., Wikipedia); embedding dimensionality is a hyper-parameter ❖ Pre-trained word embeddings (Word2Vec and GloVe) and sentence embeddings (Doc2Vec) available off-the-shelf; to scale, just use a tuple-level conversion function
+8. Learned Feature Extraction in DL
+❖ A big win of Deep Learning (DL) is no manual feature engineering on unstructured data
+❖ DL is not common on structured/tabular data, but growing in popularity. See: https://arxiv.org/pdf/2110.01889.pdf
+❖ DL is very versatile: almost any data type as input and/or output:
+❖ Convolutional NNs (CNNs) over image tensors
+❖ Recurrent NNs (RNNs) and Transformers over text
+❖ Graph NNs (GNNs) over graph-structured data
+❖ Neural architecture specifies how to extract and transform features internally with weights that are learned
+❖ Software 2.0: Buzzword for such “learned feature extraction” programs vs old hand-crafted feature engineering
+Hyper-Parameter Tuning
+❖ Hyper-parameters: Knobs for an ML model or training algorithm to control bias-variance tradeoff in a dataset-specific manner to make learning effective
+❖ Examples:
+❖ GLMs: L1 or L2 regularizer to constrain weights
+❖ All gradient methods: learning rate
+❖ Mini-batch Stochastic Gradient Descent: batch size
+❖ HT is an “outer loop” around training/inference
+❖ Most common approach: grid search; pick set of values for each hyperpa
+❖ Also common: random search to subsample from grid
+❖ Complex AutoML heuristics exist too for HT, e.g., Bayesian
+Algorithm Selection in “classical” ML
+❖ Not much to say; ML user typically picks models/algorithms in advance
+❖ Best practice: first train more simple models (log. reg.) as baselines; then try more complex models (XGBoost)
+❖ Ensembles: Build diverse models and aggregate predictions. Even for tabular data, ensembles yield better results and often win Kaggle comps with a few % boost in performance.
+❖ More critical in DL; neural arch. is inductive bias in classical ML parlance; controls feature learning and bias-variance tradeoff
+❖ Some applications: Many off-the-shelf pre-trained DL models to do
+“transfer learning,” e.g., see models at HuggingFace.co ❖ Other applications: Swap pain of hand-crafted feature eng. for pain of neural arch. eng.! Neural arch probably a better interview skill
+Automated Model Selection / AutoML
+❖ It depends. HT and most of FE already automated mostly in practice;
+(neural) AS is often application-dictated
+❖ AutoML tools/systems now aim to reduce data scientist’s work; or even replace them?! ;)
+Automated Model Selection / AutoML
+Q: Can we automate the whole model selection process?
+❖ Pros: Ease of use; lower human cost; easier to audit; improves ML accessibility
+❖ Cons: Higher resource cost; less user control; may waste domain knowledge; may leave performance on the table
+❖ Pareto-optima; hybrids possible
+Major ML Model Families/Types
+Generalized Linear Models (GLMs); from statistics
+Bayesian Networks; inspired by causal reasoning
+Decision Tree-based: CART, Random Forest, Gradient-Boosted
+Trees (GBT), etc.; inspired by symbolic logic
+Support Vector Machines (SVMs); inspired by psychology
+Artificial Neural Networks (ANNs): Multi-Layer Perceptrons
+(MLPs), Convolutional NNs (CNNs), Recurrent NNs (RNNs),
+Transformers, etc.; inspired by brain neuroscience Unsupervised: Clustering (e.g., K-Means), Matrix Factorization, Latent Dirichlet Allocation (LDA), etc.
+Scalable ML Training Systems
+❖ Scaling ML training is involved and model type-dependent ❖ Orthogonal Dimensions of Categorization:
+1. Scalability: In-memory libraries vs Scalable ML system
+(works on larger-than-memory datasets)
+2. Target Workloads: General ML library vs Decision treeoriented vs De
+3. Implementation Reuse: Layered on top of scalable data system vs Custom from-scratch framework
+Model Serving / Deployment
+❖ A trained/learned ML model is just a prediction function:f: Dx → Dy ❖ A major consideration is, online/realtime vs. offline/batch. ❖ In the offline scenario, serving a model is more trivial where it is another processing function that we apply.
+❖ In the online scenario, we become concerned with millisecond latency for responses, setting up APIs, load balancing, and monitoring.
+
+
+
+
+

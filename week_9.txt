@@ -1,0 +1,356 @@
+Numerical Optimization in ML:
+Many regression and classification models in ML are formulated as a
+(constrained) minimization problem
+❖ E.g., logistic and linear regression, linear SVM, DL classification and regression.
+❖ Aka “Empirical Risk Minimization” (ERM) approach
+❖ Computes “loss” of predictions over labeled examples
+❖ Hyperplane-based models aka Generalized Linear Models
+(GLMs) use f() that is a scalar function of distances: w^{T}x_{i}
+Batch Gradient Descent for ML
+❖ Learning rate is a hyper-parameter selected by user or
+“AutoML” tuning procedures
+❖ Number of epochs (iterations) of BGD also hyper-parameter
+Data Access Pattern of BGD at Scale
+❖ The data-intensive computation in BGD is the gradient
+❖ In scalable ML, dataset D may not fit in DRAM
+❖ Model w is typically (but not always) small and DRAM-resident
+❖ Gradient is like SQL SUM over vectors (one per example)
+❖ At each epoch, 1 filescan over D to get gradient
+❖ Update of w happens normally in DRAM
+❖ Monitoring across epochs (or iterations) for convergence needed
+❖ Loss function L() is also just a SUM in a similar manner
+I/O Cost of Scalable BGD
+❖ Straightforward filescan data access pattern for SUM ❖ Similar I/O behavior as non-dedup. project and simple SQL aggregates
+❖ I/O cost: 6 (read) + output # pages (write for final w)
+Stochastic Gradient Descent for ML ❖ Two key cons of BGD:
+❖ Often, too many epochs to reach optimal
+❖ Each update of w needs full scan: costly I/Os, full design matrix in memory
+❖ Stochastic GD (SGD) mitigates both cons
+❖ Basic Idea: Use a sample (mini-batch) of D to approximate gradient instead of “full batch” gradient
+❖ Done without replacement
+❖ Randomly reorder/shuffle D before every epoch
+❖ Sequential pass: sequence of mini-batches ❖ Another big pro of SGD: works better for non-convex loss too, especially DL
+❖ SGD often called the “workhorse” of modern ML/DL Access Pattern of Scalable SGD:
+I/O Cost of (Very) Scalable SGD:
+❖ I/O cost of random shuffle is non-trivial; need so-called “external merge sort” (skipped in this course)
+❖ Typically amounts to 1 or 2 passes over file
+❖ Mini-batch gradient computations: 1 filescan per epoch:
+❖ As filescan proceeds, count # examples seen, accumulate perexample gra ❖ Typical mini-batch sizes: 10s to 1000s... or 1 if transformer model and limited resources...
+❖ Orders of magnitude more model updates than BGD!
+❖ Total I/O cost per epoch: 1 shuffle cost + 1 filescan cost
+❖ Often, shuffling only once upfront suffices
+❖ Loss function L() computation is same as before (for BGD)
+Too Big To Fit, scale-up vs.scale-out
+When an application becomes too big or too complex to run efficiently on a single server, there are some options:
+1:migrate to a larger server, and buy bigger licenses–vertical scale up
+2:distribute data+compute across multiple servers–horizontal scale out The histories of MPI, Hadoop, Spark, Dask, etc., represent generations of scale-out, which imply trade-offs both for the risks as well as the Inherent overhead costs Why Ray:
+Machine learning is pervasive / Distributed computing is a necessity
+Python is the default language for DS/ML What is Ray?
+A simple/general-purpose library for distributed computing
+● An ecosystem of Python libraries (for scaling ML and more)
+● Runs on laptop, public cloud, K8s, on-premise
+A layered cake of functionality and capability for scaling ML workloads
+Ray Core: Tasks / Actors / Objects
+Ray AI Runtime is a scalable runtime/toolkit for end-to-end ML applications.
+Ray Basic Design Patterns
+● Ray Parallel Tasks
+○ Functions as stateless units of execution
+○ Functions distributed across the cluster as tasks
+● Ray Objects as Futures
+○ Distributed (immutable objects) store in the cluster
+○ Fetched when materialized
+○ Enable massive asynchronous parallelism
+● Ray Actors
+○ Stateful service on a cluster
+○ Enable Message passing
+Scaling Design Patterns
+(Circle: Compute; Square: Data)
+Ray Task: A function remotely executed in a cluster Python → Ray APIs:
+Ray Task: A function remotely executed in a cluster
+@ray.remote(num_cpus=2) Def f(a,b): Return a+b
+f.remote(1,2)
+Ray Actor: A class remotely executed in a cluster @ray.remote(num_gpus=4) Class HostActor:
+Def __init__(self):
+Self.num_devices = os.environ["CUDA_VISIBLE_DEVICES"] Def f(self, output):
+Return f”{output}{self.num_devices}” Actor = HostActor.remote() actor.f.remote(“hi”)
+Dynamic task graph: build at runtime ray.get() block: until result available Distributed Applications with Ray:
+ML Libraries (All using Ray core APIs & patterns)
+● Ray AI Runtime ● Distributed scikit-learn/Joblib
+● Distributed XGBoost on Ray ● Ray Multiprocess Pool
+Ray provides generic platform for LLMs Simplify orchestration and scaling:
+● Spot instance support for data parallel training
+● Easily spin up and run distributed workloads on any cloud ● Optimize CPUs/GPUs by pipelining w/ Ray Data Inference and serving:
+● Ability to support complex pipelines integrating business logic
+● Ability to support multiple node serving
+Training
+● Integrates distributed training with distributed hyperparameter tuning w/ ML frameworks
+Ray Key Takeaways
+● Distributed computing is a necessity & norm
+● Ray’s vision: make distributed computing simple
+○ Don’t have to be distributed programming expert
+● Build your own disruptive apps & libraries with Ray
+● Scale your ML workloads with Ray libraries (Ray AIR)
+● Ray offers the compute substrate for Generative AI workloads
+Introducing Data Parallelism
+Basic Idea of Scalability: Split data file (virtually or physically) and stage reads/writes of its pages between disk and DRAM Data Parallelism: Partition large data file physically across nodes/workers; within worker: DRAM-based or disk-based ❖ The most common approach to marrying parallelism and scalability in data systems
+❖ Generalization of SIMD and SPMD idea from parallel processors to large-scale data and multi-worker/multi-node setting
+❖ Distributed-memory vs Distributed-disk
+3 Paradigms of Multi-Node Parallelism
+Data parallelism is technically orthogonal to these 3 paradigms but most commonly paired with shared-nothing
+Shared-Nothing Data Parallelism
+Data Parallelism in Other Paradigms
+Data Partitioning Strategies
+❖ Row-wise/horizontal partitioning is most common (sharding) ❖ 3 common schemes (given k nodes):
+❖ Round-robin: assign tuple i to node i MOD k
+❖ Hashing-based: needs hash partitioning attribute(s) ❖ Range-based: needs ordinal partitioning attribute(s) ❖ Tradeoffs:
+❖ For Relational Algebra (RA) and SQL:
+❖ Hashing-based most common in practice for RA/SQL
+❖ Range-based often good for range predicates in RA/SQL
+❖ But all 3 are often OK for many ML workloads (why?)
+❖ Replication of partition across nodes (e.g., 3x) is common to enable “fault tolerance” and better parallel runtime performance
+Other Forms of Data Partitioning
+❖ Just like with disk-aware data layout on single-node, we can partition a large data file across workers in other ways too:
+Cluster Architectures:
+Manager-Worker Architecture:
+❖ 1 (or few) special node called Manager (aka “Server” or archaic
+“Master”); 1 or more Workers
+❖ Manager tells workers what to do and when to talk to other nodes
+❖ Most common in data systems (Dask, Spark, par. RDBMS, etc.)
+Peer-to-Peer Architecture
+❖ No special manager
+❖ Workers talk to each other directly
+❖ E.g., Horovod
+❖ Aka Decentralized (vs Centralized)
+Bulk Synchronous Parallelism (BSP)
+❖ Most common protocol of data parallelism in data systems (e.g., in parallel RDBMSs, Hadoop, Spark)
+❖ Shared-nothing sharding + manager-worker architecture
+1. Sharded data file on workers
+2. Client gives program to manager (SQL query, ML training, etc.)
+3. Manager divides first piece of work among workers
+4. Workers work independently on self’s data partition (cross-talk can happen if Manager asks)
+5. Worker sends partial results to Manager
+6. Manager waits till all k done 7. Go to step 3 for next piece
+Speedup Analysis/Limits of of BSP
+Speedup = Completion time given only 1 worker
+—------------------------------------------------
+Completion time given k (>1) workers ❖ Cluster overhead factors that hurt speedup:
+❖ Per-worker: startup cost; tear-down cost
+❖ On manager: dividing up the work; collecting/unifying partial partial results from workers
+❖ Communication costs: talk between manager-worker and across workers (when asked by manager)
+❖ Barrier synchronization suffers from “stragglers” (workers that fall behind) due to skews in shard sizes and/or worker capacities
+Quantifying Benefit of Parallelism
+Distributed Filesystems
+❖ Recall definition of file; distributed file generalizes it to a cluster of networked disks and OSs
+❖ Distributed filesystem (DFS) is a cluster-resident filesystem to manage distributed files
+❖ A layer of abstraction on top of local filesystems
+❖ Nodes manage local data as if they are local files ❖ Illusion of a one global file: DFS APIs let nodes access data sitting on other nodes
+❖ 2 main variants: Remote DFS vs In-Situ DFS ❖ Remote DFS: Files reside elsewhere and read/written on demand by workers
+❖ In-Situ DFS: Files resides on cluster where workers exist
+Network Filesystem (NFS)
+❖ An old remote DFS (c. 1980s) with simple client-server architecture for replicating files over the network Network Filesystem (NFS) ❖ Main pro: simplicity of setup and usage ❖ But many cons:
+❖ Not scalable to very large files
+❖ Full data replication
+❖ High contention for concurrent reads/writes
+❖ Single-point of failure
+Hadoop Distributed File System (HDFS)
+❖ Most popular in-situ DFS (c. late 2000s); part of Hadoop; open source spinoff of Google File system (GFS)
+❖ Highly scalable; scales to 10s of 1000s of nodes, PB files
+❖ Designed for clusters of cheap commodity nodes
+❖ Parallel reads/writes of sharded data “blocks”
+❖ Replication of blocks to improve fault tolerance
+❖ Cons: Read-only + batchappend (no fine-grained updates/writes)
+❖ NameNode’s roster maps data blocks to DataNodes/IPs ❖ A distributed file on HDFS is just a directory (!) with individual filenames for each data block and metadata files ❖ HDFS has configurable parameters:
+Parameter name Purpose Default value
+Data block size Splitting data into chunks 128 MB
+Replication factor Ensure data availability 3x
+Data-Parallel Dataflow/Workflow
+❖ Data-Parallel Dataflow: A dataflow graph with ops wherein each operation is executed in a data-parallel manner
+❖ Data-Parallel Workflow: A generalization; each vertex a whole task/process that is run in a data-parallel manner Note: In parallel environments like parallel RDBMSs and Spark: Each of these extended relational ops have scalable data-parallel All input tables implementations.
+Distributed Computing Paradigms
+Different paradigms and models used in distributed computing: Batch processing: Breaking tasks into smaller sub-tasks that can be processed independently.
+Message passing: Communication between nodes through message passing protocols like MPI.
+Shared memory: Multiple nodes accessing a common memory space. MapReduce: A programming model for processing large datasets in a distributed manner.
+Stream processing: Real-time processing of continuous data streams.
+Distributed File Systems → like HDFS (Hadoop)
+Fault Tolerance: With HDFS, the company stores multiple replicas of the data across different nodes. If a node fails, the data is still accessible from other replicas, ensuring fault tolerance and preventing data loss. Scalability: As the company's data grows, they can add more nodes to the Hadoop cluster and distribute the data across these nodes. HDFS scales horizontally, allowing the company to accommodate the increasing volume of data without compromising performance. Data Locality: When processing the customer data and performing analytics, HDFS ensures data locality by storing the data on the same nodes where the computation is performed. This reduces data transfer over the network and improves overall processing efficiency. Challenges & considerations in distributed analysis While dealing with large amounts of data the primary challenge is that it cannot fit on a single machine.
+Storage Tradeoff: Storing data entirely in memory yields better performance but is expensive. Disk storage is cheaper but results in lower performance.
+Hybrid Caching: Combination of SSD flash disks and hard disks for storing data subsets. Placement of data on appropriate storage medium is crucial.
+Distributing Data: Root-leaf approach for distributing data across thousands of machines. Each leaf machine holds a portion of the data, results merged at the root.
+Latency Impact: Latency from the slowest machine affects overall performance. Mitigating latency through optimization techniques is essential.
+Overhead in Data Transfer: Serialization, compression, and encryption introduce overhead. File format overhead, decryption, and decompression impact performance.
+Hardware Support: Encryption at rest and in motion requires hardware support. Hardware advancements crucial for efficient distributed analysis.
+Serialization and Interpretation: Data structures are serialized for transmission over a wire. Receiving machine must interpret the serialized data correctly.
+Distributed Collaborative filtering
+In the diagram, the process of making collaborative filtering distributed is illustrated with two nodes (Node 1 and Node 2) as an example. Here's a breakdown of the components:
+1. User-Item Data: Represents the initial user-item interaction data used for collaborative filtering.
+2. Data Partitioning: The data is partitioned into subsets and distributed across multiple nodes.
+3. Local Similarity Computation: Each node independently computes local similarities (e.g., cosine similarity) based on the user-item interactions available on that node.
+4. Data Exchange and Aggregation: The computed similarities are exchanged and aggregated across the nodes to generate a global similarity matrix.
+5. Recommendation Generation: Each node utilizes the global similarity matrix and the locally available user-item interactions to generate personalized recommendations for its subset of users.
+6. Result Integration and Final Recommendations: The recommendations generated by each node are integrated to produce the final distributed recommendations.
+Language Models and Challenges in Distributed Training
+1. Computational Resources: Large language models require immense computational power, memory, and storage. Training and inference across distributed systems necessitate significant hardware resources 2. Communication Overhead: In distributed training, coordinating updates across multiple nodes introduces communication overhead. Efficient communication protocols and optimized data exchange mechanisms are essential.
+3. Data Synchronization: Ensuring consistent model parameters and synchronization of large amounts of data across nodes is a challenge. In distributed inference, managing data consistency for parallel processing can be complex.
+4. Scalability: Scaling distributed training and inference to accommodate growing model sizes and datasets is crucial. Load balancing and resource allocation need to be optimized for efficient scalability.
+How to Parallelize GPTs?
+The parallelization of the GPT architecture can be achieved by
+utilizing techniques such as model parallelism and data parallelism. Let's discu Model Parallelism: Model parallelism involves distributing the model across multiple devices or machines. In the case of GPT, where the model consists of stacked transformer layers, each layer can be allocated to different devices. This allows for parallel computation of
+
+different layers, reducing the overall training or inference time. Model parallelism can be particularly useful when dealing with very large models that cannot fit into a single device's memory. Data Parallelism: Data parallelism involves dividing the data into multiple subsets and processing them simultaneously on different devices. In the context of GPT, the training data can be partitioned into smaller batches, and each batch is processed by a separate device or machine. The gradients calculated on each device are then synchronized and aggregated to update the model parameters. Data parallelism enables faster training by parallelizing the computation across multiple devices.
+Benefits of Distributed Computing for Large Language Models Scalability: Distributed computing enables efficient scaling of resources to handle large-scale training and inference workloads. Speed: Parallel processing across multiple nodes reduces the time required for training and inference tasks.
+Fault tolerance: Distributed systems provide resilience by replicating data and computations across multiple nodes, ensuring uninterrupted operation even in the face of failures.
+Real-world Applications
+Language translation: Distributed computing facilitates the training and serving of language translation models that can handle large volumes of text.
+Content generation: Distributed language models enable the generation of coherent and contextually relevant content for various applications, such as chatbots or content personalization. Sentiment analysis: Large language models distributed across multiple nodes can process and analyze vast amounts of text data to derive sentiment insights.
+Considerations and Challenges
+Data synchronization: Ensuring consistency and synchronization of data across distributed nodes.
+Communication overhead: Efficient communication and coordination between nodes to minimize latency and optimize performance. Resource management: Proper allocation and management of computational resources across the distributed system.
+Parallel RDBMSs
+❖ Parallel RDBMSs are highly successful and widely used
+❖ Typically shared-nothing data parallelism
+Optimized runtime performance + enterprise-grade features:
+ANSI SQL & more
+Business Intelligence (BI) dashboards/APIs Transaction management; crash recovery Indexes, auto-tuning, etc.
+❖ 4 new concerns of Web giants vs RDBMSs built for enterprises: ❖ Developability: Custom data models and computations hard to program on SQL/RDBMSs; need for simpler APIs
+❖ Fault Tolerance: Need to scale to 1000s of machines; need for graceful handling of worker failure
+❖ Elasticity: Need to be able to easily upsize or downsize cluster size based on workload
+❖ Cost: Commercial RDBMSs licenses too costly; hired own software engineers to build custom new systems
+A new breed of parallel data systems called Dataflow Systems jolted the DB folks from being complacent!
+What is MapReduce?
+❖ A programming model for parallel programs on sharded data + distributed system architecture
+❖ Map and Reduce are terms from functional PL; software/data/ML engineer implements logic of Map, Reduce
+❖ System handles data distribution, parallelization, fault tolerance, etc. under the hood
+❖ Created by Google to solve “simple” data workload: index, store, and search the Web!
+❖ Google’s engineers started with MySQL! Abandoned it due to
+reasons listed earlier (developability, fault tolerance, elasticity, etc.)
+❖ Standard example: count word occurrences in a doc corpus
+❖ Input: A set of text documents (say, webpages) ❖ Output: A dictionary of unique words and their counts function map (String docname, String doctext) :
+for each word w in doctext :
+emit (w, 1) function reduce (String word, Iterator partialCounts) :
+sum = 0 for each pc in partialCounts : sum += pc
+emit (word, sum) (red: Part of MapReduce API)
+How MapReduce Works
+Benefits and Catch of MapReduce
+❖ Goal: High-level functional ops to simplify data-intensive programs ❖ Key Benefits:
+❖ Map() and Reduce() are highly general; any data types/structures; great for ETL, text/multimedia
+Native scalability, large cluster parallelism
+System handles fault tolerance automatically
+Decent FOSS stacks (Hadoop and later, Spark)
+Catch: Users must learn “art” of casting program as MapReduce
+Map operates record-wise; Reduce aggregates globally
+❖ But MR libraries now available in many PLs: C/C++, Java, Python, R, Scala, etc.
+Abstract Semantics of MapReduce
+Map(): Process one “record” at a time independently
+❖ A record can physically batch multiple data examples/tuples
+❖ Dependencies across Mappers not allowed ❖ Emit 1 or more key-value pairs as output(s)
+❖ Data types of input vs. output can be different
+❖ Reduce(): Gather all Map outputs across workers sharing same key into an Iterator (list)
+❖ Apply aggregation function on Iterator to get final output(s) ❖ Input Split:
+❖ Physical-level shard to batch many records to one file “block”
+(HDFS default: 128MB?)
+❖ User/application can create custom Input Splits
+❖ First step: Transform text docs into relations and load: Part of the
+ETL stage
+Suppose we pre-divide each doc into words w/ schema: DocWords
+(DocName, Word)
+❖ Second step: a single, simple SQL query!
+More MR Examples: Select Operation
+❖ Input Split: Shard table tuple-wise
+❖ Map(): On tuple, apply selection condition; if satisfies, emit key-value (KV) pair with dummy key, entire tuple as value
+❖ Reduce():
+❖ Not needed! No cross-shard aggregation here
+❖ These kinds of MR jobs are called “Map-only” jobs
+More MR Examples: Simple Agg
+❖ Suppose it is algebraic aggregate (SUM, AVG, MAX, etc.) ❖ Input Split: ❖ Shard table tuple-wise ❖ Map():
+❖ On agg. attribute, compute incr. Stats; emit pair with single global dummy key and incr. stats as value ❖ Reduce():
+❖ Since only one global dummy key, Iterator has all sufficient stats to unify into global agg.
+More MR Examples: GROUP BY Agg
+Assume it is algebraic aggregate (SUM, AVG, MAX, etc.)
+Input Split: Shard table tuple-wise Map():
+On agg. attribute, compute incr. Stats; emit pair with grouping
+
+attribute as key and stats as value ❖ Reduce():
+❖ Iterator has all suff. stats for a single group; unify those to get result for that group
+❖ Different reducers will output different groups’ results
+More MR Examples: Matrix Sum of Squares ❖ Very similar to simple SQL aggregates ❖ Input Split: ❖ Shard table tuple-wise ❖ Map():
+❖ On agg. attribute, compute incr. stats; emit pair with single global dummy key and stats as value ❖ Reduce():
+❖ Since only one global dummy key,
+Iterator has all sufficient stats to unify into global agg.
+What is Hadoop then?
+❖ FOSS system implementation with
+→ MapReduce as programming model, and
+→ HDFS as filesystem
+❖ MR user API; input splits, data distribution, shuffling, and fault tolerances handled by Hadoop under the hood
+❖ Exploded in popularity in 2010s: 100s of papers, 10s of products
+❖ A “revolution” in scalable+parallel data processing that took the
+DB world by surprise
+❖ But nowadays Hadoop largely supplanted by Spark
+Apache Spark
+❖ Dataflow programming model (subsumes most of Relational
+Algebra; MR)
+❖ Inspired by Python Pandas style of chaining functions
+❖ Unified storage of relations, text, etc.; custom programs
+❖ Custom design (and redesign) from scratch ❖ Tons of sponsors, gazillion bucks, unbelievable hype!
+❖ Key idea vs Hadoop: exploit distributed memory to cache data
+❖ Key novelty vs Hadoop: lineage-based fault tolerance
+❖ Open-sourced to Apache; commercialized as Databricks
+Distributed Architecture of Spark
+Resilient Distributed Datasets Key concept in Spark.
+❖ RDD has been the primary user-facing API in Spark since its inception. At the core an RDD is an immutable distributed collection of elements of your data,
+partitioned across nodes in your cluster that can be operated in parallel with a low-level API that offers transformations and actions.
+❖ Good for dataset low-level transformation, actions and control.
+❖ Good for unstructured data.
+❖ Good for functional programming data manipulation.
+❖ Not recommended for imposing a schema on your data.
+❖ Lacks some optimization and performance benefits
+Spark’s Dataflow Programming Model
+Transformations are relational ops, MR, etc. as functions
+Actions are what force computation; aka lazy evaluation
+Spark DF API and SparkSQL
+❖ Databricks now recommends SparkSQL/DataFrame API; avoid RDD AP unless really needed!
+❖ Key Reason: Automatic query optimization becomes more feasible
+Query Optimization in Spark
+❖ Common automatic query optimizations (from RDBMS world) are now performed in Spark’s Catalyst optimizer: ❖ Projection pushdown: Drop unneeded columns early on
+❖ Selection pushdown: Apply predicates close to base tables
+❖ Join order optimization: Not all joins are equally costly
+❖ Fusing of aggregates
+Comparing Spark’s APIs
+Spark-based Ecosystem of Tools
+New Paradigm of Data “Lakehouse”
+❖ Data “Lake”: Loose coupling of data file format and data/query processing stack (vs RDBMS’s tight coupling); many frontends References and More Material ❖ MapReduce/Hadoop:
+❖ MapReduce: Simplified Data Processing on Large Clusters.
+❖ Spark:
+❖ Resilient Distributed Datasets: A Fault-tolerant Abstraction for In-memory Cluster Computing.
+Example: Batch Gradient Descent
+❖ Very similar to algebraic SQL; vector addition
+❖ Input Split: Shard table tuple-wise ❖ Map():
+❖ On tuple, compute per-example gradient; add these across examples in shard; emit partial sum with single dummy key ❖ Reduce():
+❖ Only one global dummy key, Iterator has partial gradients; just add all those to get full batch gradient.
+Primer: K-Means Clustering
+❖ Basic Idea: Identify clusters based on Euclidean distances; formulated as an optimization problem
+Llyod’s algorithm: Most popular heuristic for K-Means
+❖ Input: n x d examples/points
+❖ Output: k clusters and their centroids
+1. Initialize k centroid vectors and point-cluster ID assignment
+2. Assignment step: Scan dataset and assign each point to a cluster
+ID based on which centroid is nearest
+3. Update step: Given new assignment, scan dataset again to recompute centroids for all clusters
+4. Repeat 2 and 3 until convergence or fixed # iterations
+K-Means Clustering in MapReduce
+❖ Input Split: Shard the table tuple-wise
+❖ Assume each tuple/example/point has an ExampleID ❖ Need 2 jobs! 1 for Assignment step, 1 for Update step ❖ 2 external data structures needed for both jobs: ❖ Dense matrix A: k x d centroids; ultra-sparse matrix B: n x k assignments
+❖ A and B first broadcast to all Mappers via HDFS; Mappers can read small data directly from HDFS files
+❖ Job 1 read A and creates new B
+❖ Job 2 reads B and creates new A
+K-Means Clustering in MapReduce
+❖ A: k x d centroid matrix; B: n x k assignment matrix
+❖ Job 1 Map(): Read A from HDFS; compute point’s distance to all k centroids; get nearest centroid; emit new assignment as output pair
+(PointID, ClusterID)
+❖ No Reduce() for Job 1; new B now available on HDFS ❖ Job 2 Map(): Read B from HDFS; look into B and see which cluster point got assigned to; emit point as output pair (ClusterID, point vector)
+❖ Job 2 Reduce(): Iterator has all point vectors of a given ClusterID; add them up and divide by count; got new centroid; emit output pair as (ClusterID, centroid vector) Building Stage of ML Lifecycle
+❖ Perform model selection, i.e., convert prepared ML-ready data to prediction function(s) and/or other analytics outputs
+❖ What makes model building challenging/time-consuming?
+❖ Heterogeneity of data sources/formats/types
+❖ Configuration complexity of ML models ❖ Large scale of data
+❖ Long training runtimes of some models
+❖ Pareto optimization on criteria for application

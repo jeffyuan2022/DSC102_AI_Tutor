@@ -1,0 +1,99 @@
+Cloud computing
+Cloud: shared-Disk, shared-memory, [shared nothing] Compute, storage, memory, networking, etc. are virtualized and exist on remote servers; rented by application users Main pros of cloud vs on-premise clusters:
+Manageability: Managing hardware is not user’s problem Pay-as-you-go: Fine-grained pricing economics based on actual usage (granularity: seconds to years!) Elasticity: Can dynamically add or reduce capacity based on actual workload’s demand
+Infrastructure-as-a-Service (IaaS) (IT Administrators):
+Compute:
+Elastic Compute Cloud (EC2) (PA)
+Elastic Container Service (ECS)
+Serverless compute engines:
+Fargate (serverless containers), Lambda (serverless functions) Storage:
+Simple storage service (S3)
+Elastic Block Store (EBS)
+Elastic File System (EFS) Glacier (storage classes) Networking:
+CloudFront (low latency content delivery)
+Virtual Private Cloud (VPC)
+Platform-as-a-Service (PaaS) (Software Developer):
+Database/Analytics Systems:
+Aurora, Redshift, Neptune, ElastiCache, DynamoDB,
+Timestream, EMR, Athena
+Blockchain: QLDB
+IoT: Greengrass
+ML/AI: SageMaker* (both Paas and SaaS) Software-as-a-Service (SaaS) (End-user):
+ML/AI: SageMaker*, Elastic Inference, Lex, Polly,
+Translate, Transcribe, Textract, Rekognition,
+Ground Truth
+Business Apps: Chime, WorkDocs, WorkMail Evolution of Cloud Infrastructure:
+Data Center: Physical space from which a cloud is operated 3 generations of data centers/clouds:
+Cloud 1.0 (Past): Networked servers; user rents servers
+(timesliced access) needed for data/software Cloud 2.0 (Current): “Virtualization” of networked servers; user rents amount of resource capacity; cloud provider has a lot more flexibility on provisioning (multi-tenancy, load balancing, more elasticity, etc.) Cloud 3.0 (Ongoing Research): “Serverless” and disaggregated resources all connected to fast networks Modern networks in data centers have become much faster: In terms of gigabit Ethernet connection speeds, one can find speeds in the order of magnitude 100GbE to even TbE! Decoupling of compute+memory from storage is common in cloud
+Hybrids of shared-disk parallelism+shared-nothing parallelism
+E.g, store datasets on S3 and read as needed to local EBS
+New Cloud Renting Paradigms
+Cloud 2.0’s flexibility enables radically different paradigms
+AWS example below; Azure and GCP have similar gradations Such bundling means some applications might under-utilize some resources!
+Serverless paradigm gaining traction for some applications, e.g., online ML prediction serving on websites User gives a program (function) to run and specifies CPU and DRAM needed
+Cloud provider abstracts away all resource provisioning entirely
+Higher resource efficiency; much cheaper, often by 10x vs Spot instances
+Aka Function-as-a-Service (FaaS)
+Logical next step in serverless direction: full resource disaggregation! That is, compute, memory, storage, etc. are all network-attached and elastically added/removed Is all this complexity worth it?:
+Depends on the user's/application’s Pareto tradeoffs! On-premise cluster are still common in large enterprises, healthcare, and academia; “hybrid clouds” too
+Recall main pros of cloud: manageability, cost, and elasticity Some main cons of cloud (vs on-premise): Complexity of composing cloud APIs and licenses; data scientists must keep relearning; “CloudOps” teams Cost over time can crossover and make it costlier!
+Easier to waste money accidentally on the fly
+“Lock-in” by cloud vendor
+Privacy, security, and governance concerns Internet disruption or unplanned downtime, e.g., AWS outage in 2015 made Netflix, Tinder, etc. unavailable! Layers of typical cloud: Compute, Storage, Networking Spot vs On-Demand:
+On-demand has static price
+Need manual launch request
+You can determine when to interrupt instance
+Bias-Variance Tradeoff of ML
+When prediction target complexity is high, more training data coupled with more complex models yield higher accuracy as number of training examples grows High Bias: Roughly, model is not rich enough to represent data
+High Variance: Model overfits to given data; poor generalization Large-scale training data lowers variance and raises accuracy!
+Why Large-Scale Data?
+Large-scale data is a game changer in data science: Enables study of granular phenomena in sciences, businesses, etc. not possible before
+Enables new applications and personalization/customization
+Enables more complex ML prediction targets and
+mitigates variance to offer high accuracy Hardware has kept pace to power the above:
+Storage capacity has exploded (PB clusters)
+Compute capacity has grown (multi-core, GPUs, etc.)
+DRAM capacity has grown (10GBs to TBs)
+Cloud computing is “democratizing” access to hardware;SaaS
+Big Data
+Big Data Typical characterization by 3 Vs:
+Volume: larger than single-node DRAM
+Variety: relations, docs, tweets, multimedia, etc.
+Velocity: high generation rate, e.g., sensors, surveillance
+Parallel Data Processing
+Basic Idea: Split up workload across processors and perhaps also across machines/workers (aka “Divide and Conquer”)
+Common in parallel data processing: “threads”
+Generalization of process abstraction of OS
+A program/process can spawn many threads
+Each runs its part of program’s computations simultaneously
+All threads share address space (so, data too)
+In multi-core CPUs, a thread uses up 1 core
+“Hyper-threading”: Virtualizes a core to run 2 threads!
+Common in parallel data processing: “Dataflow Graph”: A directed graph representation of a program with vertices being abstract operations from a restricted set of computational primitives:
+Extended relational dataflows: RDBMS, Pandas, Modin
+Matrix/tensor dataflows: NumPy, PyTorch, TensorFlow
+Enables us to reason about data-intensive programs at a higher level
+(logical level?)
+Task Graph: Similar but coarse-grained; vertex is a process
+Logical Query Plan: Relational Algebra Gate Graph
+Neural Computational Graph: Neural Network Graph
+Task Parallelism
+Topological sort of tasks in task graph for scheduling
+Notion of a “worker” can be at processor/core level, not just at node/server level
+Thread-level parallelism possible instead of process-level E.g., Dask: 4 worker nodes x 4 cores = 16 workers total Main pros of task parallelism:
+Simple to understand; easy to implement Independence of workers => low software complexity Main cons of task parallelism:
+Data replication across nodes; wastes memory/storage
+Idle times possible on workers
+Degree of Parallelism
+The largest amount of concurrency possible in the task graph, i.e., how many task can be run simultaneously Possible Bottlenecks in Dask:
+Memory errors, poor optimization, huge task graphs take too long to serialize, poor scalability of scheduler, machine failures.
+Scaleup refers to the ability of a system to retain the same performance ratio of tasks-per-resources when both the tasks and the resources increase at same rate
+“Dask is a flexible library for parallel computing in Python” 2 key components:
+APIs for data science ops on large data Dynamic task scheduling on multi-core/multi-node Design desirables:
+Pythonic: Stay within PyData stack (e.g., no JVM) Familiarity: Retain APIs of NumPy, Pandas, etc.
+Scaling Up: Seamlessly exploit all cores
+Scaling Out: Easily exploit cluster (needs setup)
+Flexibility: Can schedule custom tasks too Fast?: “Optimized” implementations under APIs “Lazy Evaluation”:
+Ops on data structures are NOT executed immediately
+Triggered manually, e.g., compute()

@@ -1,0 +1,86 @@
+DRAM vs. Disk
+DRAM is much faster, DRAM is volatile while disk is not, DRAM has less capacity. DRAM is more expensive.
+Concurrency:
+Modern computers often have multiple processors and multiple cores per processor
+Concurrency: Multiple processors/cores run different/same set of instructions simultaneously on different/shared data
+New levels of shared caches are added
+Multiprocessing: Different processes run on different cores (or entire
+CPUs) simultaneously
+Thread: Generalization of OS’s Process abstraction
+A program spawns many threads; each run parts of the program’s computations simultaneously
+Multithreading: Same core used by many threads
+Issues in dealing with multithreaded programs that write shared data:
+Cache coherence
+Locking; deadlocks
+Complex scheduling
+Scheduling for multiprocessing/multicore is more complex Load Balancing: Ensuring different cores/proc. are kept roughly equally busy, i.e., reduce idle times
+Multi-queue multiprocessor scheduling (MQMS) is common
+Each processor/core has its own job queue OS moves jobs across queues based on load Example Gantt chart for MQMS:
+Thankfully, most data-intensive computations in data science do not need concurrent writes on shared data! Although we often need concurrent reads
+Concurrent low-level ops abstracted away by libraries/APIs
+Partitioning / replication of data simplifies concurrency Later topic (Parallelism Paradigms) will cover parallelism in depth:
+Multi-core, multi-node, etc.
+Task parallelism, Partitioned data parallelism, etc.
+File and Directory:
+File: A persistent sequence of bytes that stores a logically coherent digital object for an application
+File Format: An application-specific standard that dictates how to interpret and process a file’s bytes
+1000s of file formats exist (e.g., TXT, DOC, GIF, MPEG); varying data models/types, domain-specific, etc.
+Metadata: Summary or organizing info. about file content(aka payload)stored with file itself; format-dependent
+Directory: A cataloging structure with a list of references to files and/or
+(recursively) other directories
+Typically treated as a special kind of file.
+Sub-dir., Parent dir., Root dir.
+Filesystem
+Filesystem: The part of OS that helps programs create, manage, and delete files on disk (secondary storage)
+Roughly split into logical level and physical level:
+Logical level exposes file and directory abstractions and offers
+System Call APIs for file handling
+Physical level works with disk firmware and moves bytes to/from disk to DRAM
+Dozens of filesystems exist, e.g., ext2, ext3, NTFS, etc.
+Differ on:
+how they layer file and directory abstractions as bytes, what metadata is stored, etc.
+how data integrity/reliability is assured, support for editing/resizing, compression/encryption, etc.
+Some can work with (can be “mounted” by) multiple OSs.
+OS abstracts a file on disk as a virtual object for processes
+File Descriptor: An OS-assigned positive integer identifier/ reference for a file’s virtual object that a process can use:
+0/1/2 reserved for STDIN/STDOUT/STDERR
+File Handle: A PL’s abstraction on top of a file descriptor (fd) System Call API for File Handling:
+open(): Create a file; assign fd; optionally overwrite read(): Copy file’s bytes on disk to in-mem. buffer write(): Copy bytes from in-mem. buffer to file on disk fsync(): “Flush” (force write) “dirty” data to disk close(): Free up the fd and other OS state info on it lseek(): Position offset in file’s fd (for random read/write later)
+Dozens more (rename, mkdir, chmod, etc.)
+Files v.s Databases: Data Mode
+Database: An organized collection of interrelated data Data Model: An abstract model to define organization of data in a formal (mathematically precise) way
+E.g., Relations, XML, Matrices, DataFrames
+Every database is just an abstraction on top of data files:
+Logical level: Data model for higher-level reasoning
+Physical level: How bytes are layered on top of files All data systems (RDBMSs, Dask, Spark, PyTorch, etc.) are application/platform software that use OS System Call API for handling data files
+Data as File: Structured
+Structured Data: A form of data with regular substructure Relational Database, Matrix, Tensor, DataFrame, sequence:
+Matrix and DF have row/col numbers, relation is orderless (TSV,
+CSV)
+Transpose support only by Matrix, DF
+Most RDBMSs and Spark serialize a relation as binary file(s), often compressed
+Different RDBMSs and Spark/HDFS-based tools serialize relation/tabular data in different binary formats, often compressed:
+One file per relation; row vs columnar (e.g., ORC, Parquet) vs hybrid formats
+RDBMS vendor-specific vs open Apache
+Parquet becoming especially popular
+Comparing Structured Data Models
+Ordering: Matrix and DataFrame have row/col numbers; Relation is orderless on both axes!
+Schema Flexibility: Matrix cells are numbers. Relation tuples conform to pre-defined schema. DataFrame has no pre-defined schema but all rows/cols can have names; col cells can be mixed types! Transpose: Supported by Matrix & DataFrame, not Relation Semistructured Data: A form of data with less regular / more flexible substructure than structured data Tree-Structured:
+Typically serialized as a restricted ASCII text file (extensions
+XML, JSON, YML, etc.)
+Some data systems also offer binary file formats Can layer on Relations too Graph-Structured:
+Typically serialized with JSON or similar textual formats
+Some data systems also offer binary file formats
+Again, can layer on Relations too
+Unstructured: Data Files on Data “Lakes”
+Data “Lake”: Loose coupling of data file format for storage and data/query processing stack
+JSON for raw data; Parquet processed is common &
+Tradoffs: Pros and cons of Parquet vs text-based files (CSV, JSON, etc.):
+Less storage: Parquet stores in compressed form; can be much smaller (even 10x); less I/O to read
+Column pruning: Enables app to read only columns needed to DRAM; even less I/O now!
+Schema on file: Rich metadata, stats inside format itself
+Complex types: Can store them in a column
+Human-readability: Cannot open with text apps directly
+Mutability: Parquet is immutable/read-only; no in-place edits Decompression/Deserialization overhead: Depends on application tool
+Adoption in practice: CSV/JSON support more pervasive but
+Parquet is catching up, especially in enterprise “big data” situations

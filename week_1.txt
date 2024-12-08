@@ -1,0 +1,21 @@
+Computer - A programmable electronic device that can store, retrieve, and process digital data
+Hardware - The electronic machinery (wires, circuits, etc.) Software - Programs (instructions) and data Key Parts of Computer Hardware:
+Processor - hardware that executes instructions
+Main Memory (DRAM)- hardware that stores data and programs, byte-level addressing
+Disk - Similar to memory, but persistent, slower, and higher capacity Network interface controller(NIC) - sends and retrieves data over the network
+Key Aspects of Software:
+Instruction - command understood by the hardware
+Program - A collection of instructions for hardware and to execute Programming language - A human-readable formal language to write program
+Application Programming Interface(API) - set of programs for use Data - Digital representation of information that is stored, processed Main Kinds of Software:
+Firmware - Read-only programs that offer basic hardware control Operating System(OS) - A collection of interrelated programs that enable application/software to use hardware easily. Ex. Windows, MacOS, Linux
+Application Software - A program to manipulate data (Excel, Chrome,
+PostgreSQL)
+Data Systems Infrastructure:
+Data acquisition/preparation: Python, scikit-learn, R
+Feature Engineering Training & Inference Model Selection: TensorFlow,
+PyTorch
+Serving/Monitoring: Dask, Spark, AWS Data Representation of Data:
+Bits: All digital data are sequences of 0 & 1 (binary digits)
+Amenable to high-low/off-on electromagnetism
+Layers of abstraction to interpret bit sequences
+Given k bits, we can represent 2 unique data items 𝑘

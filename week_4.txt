@@ -1,0 +1,92 @@
+Locality of Reference in Data Science:
+Data Layout: The order in which data items of a complex data structure or an abstract data type (ADT) are laid out in memory/disk
+Data Access Pattern (of a program on a data object): The order in which a program has to access items of a complex data structure in memory Hardware Efficiency (of a program):
+How close actual execution runtime is to best possible runtime given the CPU clock rate and ISA
+Improved with careful data layout of all data objects used by a program based on its data access patterns Key Principle: Raise cache hits; reduce memory stalls!
+The first one B[k][j] misses; each * op is a stall!
+Matrices/tensors are ubiquitous in statistics/ML/DL programs Decades of optimized hardware-efficient libraries exist for matrix/tensor arithmetic (linear algebra) that reduce memory stalls and increase parallelism (more on parallelism later)
+Multi-core CPUs: BLAS/LA PACK (C), Eigen (C++), la4j (Java),
+NumPy/SciPy (Python; can wrap BLAS)
+GPUs: cuBLAS, cuSPARSE, cuDNN, cuDF, cuGraph
+Memory Hierarchy in PA0
+Pandas DataFrame needs data to fit entirely in DRAM
+Dask DataFrame automatically manages Disk vs DRAM for u
+Full data sits on Disk, brought to DRAM upon compute()
+Dask stages out computations using Pandas
+Tradeoff: Dask may throw memory configuration issues
+Role of an OS in a Computer
+An OS is a large set of interrelated programs that make it easier for applications and user-written programs to use computer hardware effectively, efficiently, and securely
+Without OS, computer users must speak machine code 2 key principles in OS (any system) design & implementation: Modularity: Divide system into functionally cohesive components that each do their jobs well
+Orchestra example: Consider a conductor orchestrating different sections
+Abstraction: Layers of functionalities from low-level (close to hardware) to high level (close to user)
+Car example: A pedal to transmission to engine to wheels
+1/0 = secondary input/output
+*
+1 ex . Chu+ GPT
+1) EX. IOC
+*
+Everything has through bus [no point to points.
+*
+14
+*
+3
+S
+Key Components of OS API of OS called “System Call”
+Kernel: The core of an OS with modules to abstract the hardware and APIs for programs to use
+Auxiliary parts of OS include shell/terminal, file browser for usability, extra programs installed by I/O devices, etc.
+The Abstraction of a Process
+Process Management: Virtualize processor ‘process abstraction; concurrency’
+Main Memory Management: virtualize main memory
+Filesystems: virtualize disk; “file” abstraction
+Networking: Communication over network
+Device Drivers: Talk to other I/O devices
+Process: A running program, the central abstraction in OS
+Started by OS when a program is executed by user OS keeps inventory of “alive” processes (Process List) and handles apportioning of hardware among processes
+A query is a program that becomes a process
+A data system typically abstracts away process management because user specifies the queries/processes in system’s API High-level steps OS takes to get a process going:
+1.Create a process (get Process ID; add to Process List)
+2. Assign part of DRAM to process, aka its Address Space
+3. Load code and static data (if applicable) to that space
+4. Set up the inputs needed to run program’s main()
+5. Update process’ State to Ready
+6. When the process is scheduled (Running), the OS temporarily hands off control to the process to run the show!
+7. Eventually, process finishes or run Destroy Virtualization of Hardware Resources
+OS has mechanisms and policies to regain control
+Virtualization: Each hardware resource is treated as a virtual entity that
+OS can divide up and share among processes in a controlled way Limited Direct Execution:
+OS mechanism to time-share CPU and preempt a process to run a different one, aka “context switch”
+A Scheduling policy tells OS what time-sharing to use
+Processes also must transfer control to OS for “privileged” operations (e.g., I/O); System Calls API Virtualization of Processors:
+Virtualization of processor enables process isolation (i.e., each process given an “illusion” that it alone runs)
+Inter-process communication possible in System Calls API
+Later: Generalize to Thread abstraction for concurrency
+Process Management by OS
+OS keeps moving processes between 3 states:
+Sometimes, if a process gets “stuck” and the OS does not schedule something else, the system hangs; it needs to reboot!
+Scheduling Policies/Algorithms
+Schedule: Record of what process runs on each CPU & when Policy controls how OS time-shares CPUs among processes Key terms for a process (aka job):
+Arrival Time: Time when process gets created
+Job Length: Duration of time needed for process
+Start Time: Times when process first starts on processor
+Completion Time: Time when process finishes/killed
+Response Time = [Start Time] – [Arrival Time]
+Turnaround Time = [Completion Time] – [Arrival Time]
+Workload: Set of processes, arrival times, and job lengths that OS
+Scheduler has to handle
+In general, the OS may not know all Arrival Times and Job Lengths beforehand! But preemption is possible
+Key Principle: Inherent tension in scheduling between overall workload performance and allocation fairness
+Performance metric is usually Average Turnaround Time Fairness: Many metrics exist (e.g., Jain’s fairness index) 100s of scheduling policies studied!
+We will be overviewing some well-known ones:
+FIFO (First-In-First-Out) SJF (Shortest Job First)
+SCTF (Shortest Completion Time First)
+Round Robin Random, etc.
+Different criteria for ranking; preemptive vs not Complex “multi-level feedback queue” schedulers ML-based schedulers are “hot” nowadays!
+First-In-First-Out aka First-Come-First-Served (FCFS)
+Ranking criterion: Arrival Time; no preemption allowed Main con: Short jobs may wait a lot, aka “Convoy Effect” Shortest Job First (SJF):
+Ranking criterion: Job Length; no preemption allowed Main con: Not all Job lengths might be unknown beforehand.
+Shortest Completion Time First (SCFT):
+Ranking criterion: Jobs might not all arrive at same time; preemption possible
+Main con same as SJF: Job lengths might be unknown beforehand Round Robin:
+In Round Robin job lengths need not be known
+Ranking criterion: Fixed time quantum given to each job; cycle through jobs
+Main con: RR is often very fair, but Avg Turnaround Time goes up
