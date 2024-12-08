@@ -340,7 +340,7 @@ else:
     st.sidebar.title("Features")
     selected_feature = st.sidebar.radio(
         "Select a Feature:",
-        ["📋 Generate Quiz", "🔗 Concept Self-Study Links", "📊 Concept Self Tracking"]
+        ["📋 Generate Quiz", "🔗 Concept Self-Study Links", "📊 Concept Self Tracking", "📋 View Your Question History"]
     )
 
     if selected_feature == "📋 Generate Quiz":
@@ -415,7 +415,43 @@ else:
         
         # st.write(st.session_state.quiz_answers)
 
+    elif selected_feature == "📋 View Your Question History":
+        st.subheader("📋 View Your Question History")
+        # Load question history from S3 (or local session state)
+        history_file_name = f"errors_{student_id}right_wrong_history.json"
+        try:
+            response = s3.get_object(Bucket=BUCKET_NAME, Key=history_file_name)
+            question_history = json.loads(response['Body'].read().decode('utf-8'))
+        except s3.exceptions.NoSuchKey:
+            st.warning("No question history found. Try answering some questions first!")
+            question_history = []
+        # Options for filtering
+        filter_option = st.radio(
+            "Select the type of questions to display:",
+            options=["All Questions", "Right", "Wrong"]
+        )
 
+        # Filter questions based on the selected option
+        filtered_questions = []
+        if filter_option == "All Questions":
+            filtered_questions = question_history
+        elif filter_option == "Right":
+            filtered_questions = [q for q in question_history if q[2] == 1]
+        elif filter_option == "Wrong":
+            filtered_questions = [q for q in question_history if q[2] == 0]
+
+        # Display the filtered questions
+        if filtered_questions:
+            st.write(f"### Showing {filter_option.lower()} questions:")
+            for idx, record in enumerate(filtered_questions, start=1):
+                question, user_answer, correctness, correct_answer = record
+                st.write(f"**{idx}. Question:** {question}")
+                st.write(f"**Your Answer:** {user_answer}")
+                st.write(f"**Correct Answer:** {correct_answer}")
+                st.write(f"**Result:** {'✅ Correct' if correctness == 1 else '❌ Incorrect'}")
+                st.markdown("---")
+        else:
+            st.info("No questions found for the selected category.")
 
 
     # Concept Links Feature
