@@ -5,7 +5,6 @@ import json
 import os
 import boto3
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 from collections import defaultdict
 import pandas as pd
 import re
@@ -26,7 +25,7 @@ def load_course_material_by_weeks(weeks):
     """Load and concatenate course materials from selected weeks."""
     materials = []
     for week in weeks:
-        file_name = f"week_{week}.txt"
+        file_name = f"data/week_{week}.txt"
         try:
             with open(file_name, "r", encoding="utf-8") as file:
                 materials.append(file.read())
@@ -34,12 +33,11 @@ def load_course_material_by_weeks(weeks):
             st.error(f"Error: {file_name} not found.")
     return "\n".join(materials)
 
-
 def load_course_material_by_concepts(concepts):
     """Load and concatenate course materials from selected weeks."""
     materials = []
     for concept in concepts:
-        file_name = f"{concept.replace(' ', '_')}.txt"
+        file_name = f"data/{concept.replace(' ', '_')}.txt"
         try:
             with open(file_name, "r", encoding="utf-8") as file:
                 materials.append(file.read())
@@ -233,7 +231,6 @@ def visualize_error_history(student_data):
     # Adjust layout to make room for the legend
     plt.tight_layout()
     st.pyplot(fig)
-
 
 def update_user_errors_in_s3(bucket_name, student_code, data):
     """
