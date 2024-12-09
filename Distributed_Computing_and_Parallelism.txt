@@ -1,0 +1,144 @@
+Parallel Data Processing
+Basic Idea: Split up workload across processors and perhaps also across machines/workers (aka “Divide and Conquer”)
+Common in parallel data processing: “threads”
+Generalization of process abstraction of OS
+A program/process can spawn many threads
+Each runs its part of program’s computations simultaneously
+All threads share address space (so, data too)
+In multi-core CPUs, a thread uses up 1 core
+“Hyper-threading”: Virtualizes a core to run 2 threads!
+Common in parallel data processing: “Dataflow Graph”: A directed graph representation of a program with vertices being abstract operations from a restricted set of computational primitives:
+Extended relational dataflows: RDBMS, Pandas, Modin
+Matrix/tensor dataflows: NumPy, PyTorch, TensorFlow
+Enables us to reason about data-intensive programs at a higher level
+(logical level?)
+Task Graph: Similar but coarse-grained; vertex is a process
+Logical Query Plan: Relational Algebra Gate Graph
+Neural Computational Graph: Neural Network Graph
+Task Parallelism
+Topological sort of tasks in task graph for scheduling
+Notion of a “worker” can be at processor/core level, not just at node/server level
+Thread-level parallelism possible instead of process-level E.g., Dask: 4 worker nodes x 4 cores = 16 workers total Main pros of task parallelism:
+Simple to understand; easy to implement Independence of workers => low software complexity Main cons of task parallelism:
+Data replication across nodes; wastes memory/storage
+Idle times possible on workers
+Degree of Parallelism
+The largest amount of concurrency possible in the task graph, i.e., how many task can be run simultaneously Possible Bottlenecks in Dask:
+Memory errors, poor optimization, huge task graphs take too long to serialize, poor scalability of scheduler, machine failures.
+Scaleup refers to the ability of a system to retain the same performance ratio of tasks-per-resources when both the tasks and the resources increase at same rate
+“Dask is a flexible library for parallel computing in Python” 2 key components:
+APIs for data science ops on large data Dynamic task scheduling on multi-core/multi-node Design desirables:
+Pythonic: Stay within PyData stack (e.g., no JVM) Familiarity: Retain APIs of NumPy, Pandas, etc.
+Scaling Up: Seamlessly exploit all cores
+Scaling Out: Easily exploit cluster (needs setup)
+Flexibility: Can schedule custom tasks too Fast?: “Optimized” implementations under APIs “Lazy Evaluation”:
+Ops on data structures are NOT executed immediately
+Triggered manually, e.g., compute()
+Dataflow graph / task graph is built under the hood Possible Issue in Dask:
+Dask: Task-Parallelism best Practices:
+Data Partition sizes:
+Avoid too few chunks (low degree of par.)
+Avoid too many chunks (task graph overhead) Be mindful of available DRAM Rough guidelines they give:
+# data chunks ~ 3x-10x # cores, but # cores x chunk size must be < machine DRAM, but chunk size shouldn’t be too small (~1 GB is OK) Q: Do you tune any of these when using an RDBMS?
+Dask still lacks “physical data independence”!
+Use the Diagnostics dashboard:
+Monitor # tasks, core/node usage, task completion Task Graph sizes:
+Too large:
+Bottlenecks (serialization / communication / scheduling) Too small: Under-utilization of cores/nodes Rough guidelines:
+Tune data chunk size to adjust # tasks (see previous point)
+Break up a task/computation
+Fuse tasks/computations aka “batching”, or in other cases break jobs apart into distinct stages. Execution Optimization Tradeoffs
+Be judicious in tuning data chunk sizes
+Be judicious in batching vs breaking up tasks
+Speedup is a function of the above factors
+Single-Instruction Multiple-Data (SIMD)
+A fundamental form of parallel processing in which different chunks of data are processed by the “same” set of instructions shared by multiple processing units (PUs) Aka “vectorized” instruction processing (vs “scalar”)
+Data science workloads are very amenable to SIMD
+Note: no “master” scheduler in this scenario Single-Instruction Multiple Thread (SIMT): Generalizes notion of SIMD to different threads concurrently doing so Each thread may be assigned a core or a whole PU Single-Program Multiple Data (SPMD): A higher level of abstraction generalizing SIMD operations or programs Under the hood, may use multiple processes or threads
+Each chunk of data processed by one core/PU
+Applicable to any CPU, not just vectorized PUs
+Most common form of parallel programming In this case, work is distributed from a central scheduler or orchestrator.
+In data science computations, an often useful surrogate for completion time is the instruction throughput FLOP/s,
+i.e., number of floating point operations per second Modern data processing programs, especially deep learning (DL) may have billions of FLOPs aka GFLOPs!
+Amdahl’s Law: Formula to upper bound possible speedup A program has 2 parts: one that benefits from multi-core parallelism and one that does not Non-parallel part could be for control, memory stalls, traversing a linked list
+Moore's Law: The number of transistors in a dense integrated circuit doubles Practices:
+Linear?
+Task Graph
+DRAM is the level of memory that has the lowest latency to read data from
+Dennard Scaling: As transistors get smaller, their power density stays constant, so that the power use stays in proportion with area. Takeaway from hardware trends: it is hard for general-purpose CPUs to sustain FLOP-heavy programs like deep nets
+Motivated the rise of “accelerators” for some classes of programs Graphics Processing Unit (GPU): Tailored for matrix/tensor ops Basic idea: use tons of ALUs; massive data parallelism (SIMD on steroids); Titan X offers ~11 TFLOP/s!
+Tensor Processing Unit (TPU): Even more specialized tensor ops in DL inference; ~45 TFLOP/s!
+Field-Programmable Gate Array (FPGA): Configurable for any class of programs; ~0.5-3 TFLOP/s
+(1):Data processing programs need to go through the OS System Call API to read text files but can typically bypass that API if they want to read binary file: FALSE
+(2):Which of the following properties of data processing programs is sometimes exploited to help reduce runtimes?: Spatial locality of reference;Temporal locality of reference ;Parallelism in computations
+(Post Midterm:)
+How much DRAM might a machine have? Common DRAM configs:
+• Average Laptop: 16GB
+• t2.xlarge EC2 instance: 16GB (at $0.19/hour)
+• 2023 MacBook Pro: 32GB-96GB
+• Consumer Deep Learning / Gaming PC: 128GB ($288 fixed)
+• r7g.metal EC2 instance: 512GB (at $3.43/hour)
+• hpc6id.32xlarge EC2 instance: 1024GB (at $5.70/hour)
+Less common: u-24tb1.112xlarge: 24TB (at $218.40/hour)
+Scalable Data Access
+Central Issue: Large data file does not fit entirely in DRAM Basic Idea: Divide-and-conquer again. “Split” a data file (virtually or physically)
+and stage reads of its pages from disk to DRAM; vice versa for writes.
+Single-node disk: Paged access from file on local disk
+Remote read: Paged access from disk(s) over a network
+Distributed memory: Data fits on a cluster’s total DRAM
+Distributed disk: Use entire memory hierarchy of cluster
+Paged Data Access to DRAM
+Page Management in DRAM Cache
+Caching: Retaining pages read from disk in DRAM
+Eviction: Removing a page frame’s content in DRAM
+Spilling: Writing out pages from DRAM to disk
+❖ If a page in DRAM is “dirty” (i.e., some bytes were written but not backed up on disk), eviction requires a spill. ❖ The set of DRAM-resident pages typically changes over the lifetime of a process
+Cache Replacement Policy: The algorithm that chooses which
+page frame(s) to evict when a new page has to be cached but the
+OS cache in DRAM is full
+❖ Popular policies include Least Recently Used, Most Recently
+Used, etc. (more shortly)
+Quantifying I/O: Disk, Network
+Page reads/writes to/from DRAM from/to disk incur latency Disk I/O Cost: Abstract counting of number of page I/Os; can map to bytes given page size
+Sometimes, programs read/write data over network Communication/Network I/O Cost: Abstract counting of number of pages/bytes sent/received over network
+I/O cost is abstract; mapping to latency is hardware-specific
+Example: Suppose a data file is 40GB; page size is 4KB
+I/O cost to read file = 10 million page I/Os
+Disk with I/O throughput: 800 MB/s → 40GB/800MBps = 50s
+Network with speed: 200 MB/s → 40GB/200MBps = 200s
+Scaling to (Local) Disk
+In general, scalable programs stage access to pages of file on disk and efficiently use available DRAM ❖ Recall that typically DRAM size << Disk size
+Modern DRAM sizes can be 10s of GBs; so we read a
+“chunk”/“block” of file at a time (say, 1000s of pages) ❖ On magnetic hard disks, such chunking leads to more sequential I/Os, raising throughput and lowering latency!
+❖ Similarly, write a chunk of dirtied pages at a time
+Generic Cache Replacement Policies
+What to do if number of page frames is too few for file? Cache Replacement Policy: Algorithm to decide which page frame(s) to evict to make space
+Typical frame ranking criteria:
+❖ recency of use
+❖ frequency of use
+❖ number of processes reading it
+Typical optimization goal: Reduce total page I/O costs A few well-known policies:
+❖ Least Recently Used (LRU): Evict page that was used longest ago
+❖ Most Recently Used (MRU): (Opposite of LRU) ❖ ML-based caching policies are “hot” nowadays!
+Data Layouts and Access Patterns
+❖ Recall that data layouts and data access patterns affect what data subset gets cached in higher level of memory hierarchy ❖ Recall matrix multiplication example and CPU caches ❖ Key Principle: Optimizing layout of data file on disk based on data access pattern can help reduce I/O costs
+❖ Applies to both magnetic hard disk and flash SSDs ❖ But especially critical for magnetic hard disks due to vast differences in latency of random vs sequential access!
+Row-store vs Column-store Layouts
+❖ A common dichotomy when serializing 2-D structured data
+(relations, matrices, DataFrames) to file on disk
+❖ Based on data access pattern of program, I/O costs with row- vs col-store can be orders of magnitude apart! ❖ With row-store: need to fetch all pages; I/O cost: 6 pages
+❖ With col-store: need to fetch only B’s pages; I/O cost: 2 pages
+This difference generalizes to higher dimensions for tensors
+Hybrid/Tiled/“Blocked” Layouts
+Dask’s DataFrame
+Basic Idea: Split data file (virtually or physically) and stage reads of its pages from disk to DRAM (vice versa for writes) ❖ Dask DF scales to disk-resident data via a row-store
+❖ “Virtual” split: each split is a Pandas DF under the hood ❖ Dask API is a “wrapper” around Pandas API to scale ops to splits and put all results together
+❖ If file is too large for DRAM, need manual repartition() to get physically smaller splits (< ~1GB)
+Modin’s DataFrame
+Basic Idea: Split data file (virtually or physically) and stage reads of its pages from disk to DRAM (vice versa for writes)
+❖ Modin’s DF aims to scale to diskresident data via a tiled store
+❖ Enables seamless scaling along both dimensions
+❖ Easier use of multi-core parallelism
+→ Many in-memory RDBMSs had this, e.g., SAP HANA,
+Oracle TimesTen
+→ ScaLAPACK had this for matrices

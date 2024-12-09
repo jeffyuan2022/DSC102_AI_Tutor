@@ -1,0 +1,37 @@
+Data structure: A second layer of abstraction to organize multiple instances of data types as a more complex object with specified properties Examples: Array, Linked list, Tuple, Graph, etc.
+A Byte(8 bits): the basic unit of data types
+Represents 2^8 unique data items
+𝐶𝑒𝑖𝑙( 𝐿𝑜𝑔 bits needed to distinguish k data items 2(𝑘)) Boolean:
+E.g: Y/N or T/F responses
+Just 1 bit needed
+Actual size is almost always 1B, i.e., 7 bits are wasted!
+Extra 7 bits for accessing information Integer:
+E.g: # of friends, age, # of likes
+Typically 4 bytes; Many variants (short, unsigned, etc.)
+Java int can represent -231 to (231 - 1)
+C unsigned int can represent 0 to (232 - 1)
+Python3 int is effectively unlimited length (PL magic!)
+Hexadecimal representation: more succinct and readable
+Base 16 instead of base 2 cuts display length by ~4x
+Digits are 0, 1, ... 9, A (10 ), B,…F ( ) 10 1510
+Each hexadecimal digit represents 4 bits
+From Hexadecimal to binary: 2F → 0010 1111
+Floats: half(2B); single(4B); double(8B)
+E.g: salary, scores, model weights
+Single-precision: 4B long; ~8 decimal digits (Java, C)
+Double-precision: 8B long; ~16 decimal digits (Python) Floating point arithmetic (addition and multiplication) is not associative
+Exponent 0xFF and fraction 0 is +/- “Infinity”
+Exponent 0xFF and fraction <> 0 is “NaN” Character(Char):
+E.g: Represents letters, numerals, punctuations, etc
+1 Byte in C, 2 Byte in Java
+Python does not have a char type, use str or bytes
+String: variable sized array of char
+Digital object: Collections of basic data types(string, array, set, bytes, integers, floats, and characters)
+Serialization: The process of converting a data structure (or program objects in general) into a neat sequence of bytes that can be exactly recovered
+Serializing bytes and characters/strings is trivial 2 alternatives for serializing integers/floats:
+As byte stream (aka “binary type” in SQL)
+As string, e.g., 4B integer 5 -> 2B string as “5”
+String ser. common in data science (CSV, TSV, etc.)
+We often convert a trained model into a format that can be stored or transmitted. This involves transforming it into a sequence of bytes that can be written to disk or sent over network (i.e. we have to serialize it) We can serialize any other ML related artifacts like transformers, data, metadata, etc.
+Deserialization: the process of converting a serialized model back to its original data structure to be used for inference.
+We load it back into memory for inference or evaluation purposes Can be implemented in various formats, such as JSON, protocol buffers, or Apache Avro.

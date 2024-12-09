@@ -1,0 +1,23 @@
+Role of an OS in a Computer
+An OS is a large set of interrelated programs that make it easier for applications and user-written programs to use computer hardware effectively, efficiently, and securely
+Without OS, computer users must speak machine code 2 key principles in OS (any system) design & implementation: Modularity: Divide system into functionally cohesive components that each do their jobs well
+Orchestra example: Consider a conductor orchestrating different sections
+Abstraction: Layers of functionalities from low-level (close to hardware) to high level (close to user)
+Car example: A pedal to transmission to engine to wheels
+1/0 = secondary input/output
+*
+1 ex . Chu+ GPT
+1) EX. IOC
+*
+Everything has through bus [no point to points.
+*
+14
+*
+3
+S
+Key Components of OS API of OS called “System Call”
+Kernel: The core of an OS with modules to abstract the hardware and APIs for programs to use
+Auxiliary parts of OS include shell/terminal, file browser for usability, extra programs installed by I/O devices, etc.
+The Abstraction of a Process
+Process Management: Virtualize processor ‘process abstraction; concurrency’
+Main Memory Management: virtualize main memory

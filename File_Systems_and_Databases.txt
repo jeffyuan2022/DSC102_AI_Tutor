@@ -1,0 +1,14 @@
+Filesystems: virtualize disk; “file” abstraction
+Networking: Communication over network
+Device Drivers: Talk to other I/O devices
+Process: A running program, the central abstraction in OS
+Started by OS when a program is executed by user OS keeps inventory of “alive” processes (Process List) and handles apportioning of hardware among processes
+A query is a program that becomes a process
+A data system typically abstracts away process management because user specifies the queries/processes in system’s API High-level steps OS takes to get a process going:
+1.Create a process (get Process ID; add to Process List)
+2. Assign part of DRAM to process, aka its Address Space
+3. Load code and static data (if applicable) to that space
+4. Set up the inputs needed to run program’s main()
+5. Update process’ State to Ready
+6. When the process is scheduled (Running), the OS temporarily hands off control to the process to run the show!
+7. Eventually, process finishes or run Destroy

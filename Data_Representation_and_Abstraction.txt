@@ -1,0 +1,2 @@
+Data Systems Infrastructure:
+Data acquisition/preparation: Python, scikit-learn, R

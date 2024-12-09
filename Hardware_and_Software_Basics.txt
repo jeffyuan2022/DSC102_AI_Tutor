@@ -1,0 +1,7 @@
+Key Aspects of Software:
+Instruction - command understood by the hardware
+Program - A collection of instructions for hardware and to execute Programming language - A human-readable formal language to write program
+Application Programming Interface(API) - set of programs for use Data - Digital representation of information that is stored, processed Main Kinds of Software:
+Firmware - Read-only programs that offer basic hardware control Operating System(OS) - A collection of interrelated programs that enable application/software to use hardware easily. Ex. Windows, MacOS, Linux
+Application Software - A program to manipulate data (Excel, Chrome,
+PostgreSQL)

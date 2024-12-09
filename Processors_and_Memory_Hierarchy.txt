@@ -1,0 +1,46 @@
+Basics of Processors:
+Processor: Hardware to orchestrate and execute instructions to manipulate data as specified by a program
+Examples: CPU, GPU, FPGA, TPU, embedded, etc.
+Instruction Set Architecture (ISA):
+The vocabulary of commands of a processor
+Specifies bit length/format of machine code commands
+Has several commands to manipulate register contents
+Load-store architecture - How processor executes machine code Register: Tiny local memory (“scratch space”) on processors into which instructions and data are copied
+Caches: Small local memory to buffer instructions/data Types of ISA commands to manipulate register contents: Memory access: load (copy bytes from DRAM address to register); store (reverse); put constant
+Arithmetic & logic on data items in registers (ALU): add/multiply/etc.; bitwise ops; compare, etc.
+Control flow (branch, call, etc.)
+Processor Performance
+Modern CPUs can run millions of instructions per second
+ISA influences #clock cycles each instruction needs
+CPU’s clock rate lets us convert that to runtime (ns)
+Most programs do not keep the CPU always busy
+Memory access commands stall the processor Worse, data may not be in DRAM—wait for disk I/O! Actual execution runtime of program may be orders of magnitude higher than what clock rate calculation suggests The arithmetic & Logic Unit and Control Unit are idle during memory-register transfer
+Key Principle: Optimizing access to main memory and use of processor cache is critical for processor performance
+→ Due to OOM access latency differences across memory hierarchy, optimizing access to lower levels and careful use of higher levels is critical for overall system performance!
+Locality of Reference: Many programs tend to access memory locations in a somewhat predictable manner Spatial: Nearby locations will be accessed soon
+Temporal: Same locations accessed again soon
+Locality can be exploited to reduce runtimes using caching and/or prefetching across all levels in the hierarchy
+Concepts of Memory Management
+Caching: Buffering a copy of bytes from lower level at higher level to exploit locality
+Prefetching: Preemptively retrieving bytes (typically data) from addresses not explicitly asked yet by program
+Spill/Miss/Fault: Data needed for program is not yet available at a higher level; need to get it from lower level Register Spill(register to cache);
+Cache Miss(cache to main memory)
+“Page” Fault (main memory to disk)
+Hit: Data needed is already available at higher level Cache Replacement Policy: Policies of when new data needs to be loaded to a higher level, which old data to evict to make room? Many policies exist with different properties
+Memory Hierarchy in Action
+Locality of Reference in Data Science:
+Data Layout: The order in which data items of a complex data structure or an abstract data type (ADT) are laid out in memory/disk
+Data Access Pattern (of a program on a data object): The order in which a program has to access items of a complex data structure in memory Hardware Efficiency (of a program):
+How close actual execution runtime is to best possible runtime given the CPU clock rate and ISA
+Improved with careful data layout of all data objects used by a program based on its data access patterns Key Principle: Raise cache hits; reduce memory stalls!
+The first one B[k][j] misses; each * op is a stall!
+Matrices/tensors are ubiquitous in statistics/ML/DL programs Decades of optimized hardware-efficient libraries exist for matrix/tensor arithmetic (linear algebra) that reduce memory stalls and increase parallelism (more on parallelism later)
+Multi-core CPUs: BLAS/LA PACK (C), Eigen (C++), la4j (Java),
+NumPy/SciPy (Python; can wrap BLAS)
+GPUs: cuBLAS, cuSPARSE, cuDNN, cuDF, cuGraph
+Memory Hierarchy in PA0
+Pandas DataFrame needs data to fit entirely in DRAM
+Dask DataFrame automatically manages Disk vs DRAM for u
+Full data sits on Disk, brought to DRAM upon compute()
+Dask stages out computations using Pandas
+Tradeoff: Dask may throw memory configuration issues

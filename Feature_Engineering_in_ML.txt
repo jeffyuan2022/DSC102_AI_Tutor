@@ -1,0 +1,3 @@
+Feature Engineering Training & Inference Model Selection: TensorFlow,
+PyTorch
+Serving/Monitoring: Dask, Spark, AWS Data Representation of Data:
