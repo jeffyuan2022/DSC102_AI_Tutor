@@ -193,7 +193,7 @@ def visualize_error_history(student_data):
         return
 
     # Normalize frequencies for dynamic color assignment
-    cmap = cm.get_cmap("tab20c")  # Change to your preferred colormap
+    cmap = plt.get_cmap("tab20c")
     colors = [cmap(i / len(frequencies)) for i in range(len(frequencies))]
 
     # Create a donut chart
