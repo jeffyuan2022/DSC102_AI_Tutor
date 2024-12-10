@@ -10,6 +10,22 @@ import pandas as pd
 import re
 import ast
 
+"""
+Project Credits
+---------------
+This application project is a collaborative effort by the following team members
+(listed in alphabetical order by last name):
+- Jason Dai
+- Yuhe Tian
+- Andrew Zhao
+- Yiheng Yuan
+
+We acknowledge the invaluable assistance provided by large language models (LLMs), 
+the resources made available through the UCSD DSC 102 course website, and the insightful 
+feedback from the course teaching assistants. Additional external resources also 
+contributed to the development of this project.
+"""
+
 # Initialize S3 client
 s3 = boto3.client('s3')
 BUCKET_NAME = "lign167project"
@@ -74,33 +90,33 @@ def generate_quiz_questions(materials, num_questions):
     response = completion.choices[0].message.content.strip()
     return response
 
-def grade_quiz_questions(answers):
-    prompt = f"""
-    You are an assistant that evaluates answers to quiz questions. The user has provided answers to a set of questions{answers}. Do not output any other things rather than the one specified later, you must include [] signs in your output. Your task is to judge the correctness of user's answer. You only need to tell user about questions they made mistakes on. You should put all mistakes and its correct answer in a list and output in this way: [(mistaken_question_number, correct_answer), (mistaken_question_number, correct_answer), ......]
+def grade_quiz_questions(answers, material):
     """
+    Evaluates answers and returns a consistent response for both display and storage.
 
-    completion = openai.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
-    )
-    
-    response = completion.choices[0].message.content.strip()
-    return response
+    Parameters:
+        answers (str): The user's answers to quiz questions.
 
-def grade_quiz_questions_2(answers):
+    Returns:
+        list: A Python-formatted list of tuples containing:
+            (question_number, question_text, user_answer, label (1/0), correct_answer_or_user_answer).
+    """
     prompt = f"""
-    You are an assistant that evaluates answers to quiz questions. The user has provided answers to a set of questions{answers}. Do not output any other information than specified below. Your task is to judge the correctness of the user's answers and provide a review of each question. You must include [] signs in your output. 
+    You are an assistant that evaluates answers to quiz questions. The user has provided answers to a set of questions {answers}.
 
+    Additionally, you have the following course material to reference:
+    {material}
+    
     Rules:
-    1. If the user's answer is correct, set the label to "1" and include the user's answer as the correct_answer_or_user_answer.
-    2. If the user's answer is incorrect, set the label to "0" and provide the correct answer in the correct_answer_or_user_answer field.
-
+    1. Evaluate each question's answer for correctness.
+    2. If the user's answer is correct, set the label to "1" and include the user's answer as the correct_answer_or_user_answer.
+    3. If the user's answer is incorrect, set the label to "0" and provide the correct answer in the correct_answer_or_user_answer field.
+    
+    Format:
     For each question, output the following in a list format:
-    [(question_text, user_answer, label (1/0), correct_answer_or_user_answer), (question_text, user_answer, label (1/0), correct_answer_or_user_answer), ......].
-
-    Ensure the output is a valid Python list with tuples for each question. Do not include any explanations or extra text outside the specified format.
+    [(question_number, question_text, user_answer, label (1/0), correct_answer_or_user_answer), ...].
+    
+    Ensure the output is a valid Python list with tuples for each question. Do not include any explanations or extra text.
     """
 
     completion = openai.chat.completions.create(
@@ -109,9 +125,14 @@ def grade_quiz_questions_2(answers):
             {"role": "user", "content": prompt}
         ]
     )
-    
+
     response = completion.choices[0].message.content.strip()
-    return response
+
+    match = re.search(r"\[.*\]", response, re.DOTALL)
+    if match:
+        extracted_content = ast.literal_eval(match.group(0))
+
+    return extracted_content
 
 def attribute_error_to_topic(error):
     dsc102_topics = [
@@ -409,29 +430,24 @@ else:
 
             agree = st.checkbox("I confirm all answers are filled (even if unsure).")
             if st.button("Submit Answer") and agree:
-                st.write(st.session_state.quiz_answers)
-                graded = grade_quiz_questions(st.session_state.quiz_answers)
-                placeholder = grade_quiz_questions_2(st.session_state.quiz_answers)
-                st.write("Incorrect Questions question number , Explanation:")
-                # st.write(graded)
-                for i in graded.strip('[]').split("), ("):
-                    st.write(i)
-                    topic = attribute_error_to_topic(i[3:])
-                    # st.write(attribute_error_to_topic(i[3:]))
-
+                full_results = grade_quiz_questions(st.session_state.quiz_answers, materials)
+                graded_output = [
+                    (item[0], item[4])  # (question_number, correct_answer)
+                    for item in full_results if item[3] == 0
+                ]
+                store_result = [(item[1],item[2],item[3],item[4]) for item in full_results]
+                st.write("Incorrect Questions (question number, Correct Answer):")
+                for mistake in graded_output:
+                    st.write(str(mistake))
+                    topic = attribute_error_to_topic(mistake[1])  # Correct answer text for topic
+                    
                     # Increment the topic frequency in the student's data
                     if topic not in st.session_state.student_data:
                         st.session_state.student_data[topic] = 1
                     else: 
                         st.session_state.student_data[topic] += 1
-                
-                match = re.search(r"\[.*\]", placeholder, re.DOTALL)
-                if match:
-                    extracted_content = match.group(0)
 
-                print(ast.literal_eval(extracted_content))
-
-                st.session_state.graded_2 = st.session_state.graded_2 + ast.literal_eval(extracted_content)
+                st.session_state.graded_2 = st.session_state.graded_2 + store_result
 
                 # Save the updated data back to the student's file
                 update_user_errors_in_s3(BUCKET_NAME, student_id, st.session_state.student_data)
