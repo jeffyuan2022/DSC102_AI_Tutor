@@ -6,6 +6,22 @@ import os
 import boto3
 import matplotlib.pyplot as plt
 
+"""
+Project Credits
+---------------
+This application project is a collaborative effort by the following team members
+(listed in alphabetical order by last name):
+- Jason Dai
+- Yuhe Tian
+- Andrew Zhao
+- Yiheng Yuan
+
+We acknowledge the invaluable assistance provided by large language models (LLMs), 
+the resources made available through the UCSD DSC 102 course website, and the insightful 
+feedback from the course teaching assistants. Additional external resources also 
+contributed to the development of this project.
+"""
+
 # Initialize S3 client
 s3 = boto3.client('s3')
 BUCKET_NAME = "lign167project"

@@ -373,7 +373,7 @@ else:
                 st.warning("No data available on your past mistakes.")
 
         # Number of questions
-        num_questions = st.number_input("Number of Questions:", min_value=1, max_value=20, step=1, value=5)
+        num_questions = st.number_input("Number of Questions: (From 1 to 20)", min_value=1, max_value=20, step=1, value=5)
 
         if st.button("Generate Quiz"):
             questions_text = generate_quiz_questions(materials, num_questions)
@@ -440,12 +440,12 @@ else:
         # Options for filtering
         filter_option = st.radio(
             "Select the type of questions to display:",
-            options=["All Questions", "Right", "Wrong"]
+            options=["All", "Right", "Wrong"]
         )
 
         # Filter questions based on the selected option
         filtered_questions = []
-        if filter_option == "All Questions":
+        if filter_option == "All":
             filtered_questions = question_history
         elif filter_option == "Right":
             filtered_questions = [q for q in question_history if q[2] == 1]
