@@ -244,7 +244,7 @@ def update_user_errors_in_s3(bucket_name, student_code, data):
     file_name = f"errors_{student_code}.json"
     json_data = json.dumps(data)
     s3.put_object(Bucket=bucket_name, Key=file_name, Body=json_data, ContentType="application/json")
-
+    
 def load_user_errors_from_s3(bucket_name, student_code):
     """
     Load the user's error data from S3.
@@ -254,15 +254,25 @@ def load_user_errors_from_s3(bucket_name, student_code):
         student_code (str): The student's ID.
     
     Returns:
-        dict: The user's error data, or an empty dictionary if the file doesn't exist.
+        dict or list: The user's error data as a dictionary or a list, depending on the input,
+                      or an empty dictionary/list if the file doesn't exist.
     """
     file_name = f"errors_{student_code}.json"
     try:
         response = s3.get_object(Bucket=bucket_name, Key=file_name)
         data = json.loads(response['Body'].read().decode('utf-8'))
-        return data  # Return the dictionary directly
+        
+        # Ensure the data type matches the condition
+        if "right_wrong_history" in student_code:
+            return data if isinstance(data, list) else []
+        else:
+            return data if isinstance(data, dict) else {}
     except s3.exceptions.NoSuchKey:
-        return {}  # Return an empty dictionary if the file doesn't exist
+        # Return an empty list or dictionary based on the condition
+        if "right_wrong_history" in student_code:
+            return []
+        else:
+            return {}
 
 def search_concept_links(concept):
     """
@@ -418,6 +428,8 @@ else:
                 match = re.search(r"\[.*\]", placeholder, re.DOTALL)
                 if match:
                     extracted_content = match.group(0)
+
+                print(ast.literal_eval(extracted_content))
 
                 st.session_state.graded_2 = st.session_state.graded_2 + ast.literal_eval(extracted_content)
 
