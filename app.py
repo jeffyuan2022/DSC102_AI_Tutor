@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 # - Andrew Zhao
 # - Yiheng Yuan
 
-# We acknowledge the invaluable assistance provided by large language models (LLMs), 
+# We acknowledge the invaluable assistance provided by large language models (LLMs); we have used ChatGPT to help us write those two load course materials functions, load user materials from s3 function, and the donut chart data visualization function, and we have also used ChatGPT to help us in the Generate Quiz and View Your Question History UI functions, but we changed the code because the code provided by ChatGPT did not work at the start. 
 # the resources made available through the UCSD DSC 102 course website, and the insightful 
 # feedback from the course teaching assistants. Additional external resources also 
 # contributed to the development of this project.
