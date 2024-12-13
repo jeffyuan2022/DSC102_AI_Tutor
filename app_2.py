@@ -10,21 +10,21 @@ import pandas as pd
 import re
 import ast
 
-"""
-Project Credits
----------------
-This application project is a collaborative effort by the following team members
-(listed in alphabetical order by last name):
-- Jason Dai
-- Yuhe Tian
-- Andrew Zhao
-- Yiheng Yuan
+# """
+# Project Credits
+# ---------------
+# This application project is a collaborative effort by the following team members
+# (listed in alphabetical order by last name):
+# - Jason Dai
+# - Yuhe Tian
+# - Andrew Zhao
+# - Yiheng Yuan
 
-We acknowledge the invaluable assistance provided by large language models (LLMs), 
-the resources made available through the UCSD DSC 102 course website, and the insightful 
-feedback from the course teaching assistants. Additional external resources also 
-contributed to the development of this project.
-"""
+# We acknowledge the invaluable assistance provided by large language models (LLMs), 
+# the resources made available through the UCSD DSC 102 course website, and the insightful 
+# feedback from the course teaching assistants. Additional external resources also 
+# contributed to the development of this project.
+# """
 
 # Initialize S3 client
 s3 = boto3.client('s3')
@@ -367,7 +367,7 @@ else:
     st.sidebar.title("Features")
     selected_feature = st.sidebar.radio(
         "Select a Feature:",
-        ["📋 Generate Quiz", "📊 Concept Self Tracking", "📋 View Your Question History", "🔗 Concept Self-Study Links"]
+        ["📋 Generate Quiz", "📊 Concept Self Tracking", "👀 View Your Question History", "🔗 Concept Self-Study Links"]
     )
 
     if selected_feature == "📋 Generate Quiz":
@@ -424,6 +424,7 @@ else:
             for i in st.session_state.quiz_questions:
                 st.write(i)
                 user_answer = st.text_area(f"Answer for question {counter+1}:", key=f"answer_{counter}", max_chars = 500, height=100)
+                # st.write(user_answer)
                 if user_answer:  # Only store if the user has typed something
                     st.session_state.quiz_answers[i] = user_answer
                 counter += 1
@@ -455,7 +456,7 @@ else:
 
                 st.success("Error frequencies updated!")
 
-    elif selected_feature == "📋 View Your Question History":
+    elif selected_feature == "👀 View Your Question History":
         st.subheader("📋 View Your Question History")
         # Load question history from S3 (or local session state)
         history_file_name = f"errors_{student_id}right_wrong_history.json"
