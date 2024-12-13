@@ -1,5 +1,7 @@
 # DSC102 AI Tutor
-### We used ChatGPT in the process of writing this README file
+#### We used ChatGPT in the process of writing this README file
+
+## [Video Demo Link](https://www.youtube.com/watch?v=2krRz-4Fx3E)
 
 DSC102 AI Tutor is an interactive concept study assistant designed to help students learn University of California, San Diego DSC 102 course concepts effectively. By generating personalized exercises, tracking history, and insightful feedback, DSC102 AI Tutor ensures that students not only learn DSC 102 concepts but also better help them prepare the final exam.
 
